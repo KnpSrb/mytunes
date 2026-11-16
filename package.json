@@ -1,0 +1,37 @@
+{
+  "name": "mytunes",
+  "productName": "MyTunes",
+  "version": "1.0.0",
+  "description": "MyTunes — локальный музыкальный плеер",
+  "main": "main.js",
+  "author": "MyTunes",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "app.mytunes.player",
+    "productName": "MyTunes",
+    "files": ["main.js", "index.html"],
+    "directories": { "output": "dist" },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "MyTunes"
+    },
+    "portable": { "artifactName": "MyTunes-Portable-${version}.exe" }
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}
