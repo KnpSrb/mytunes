@@ -1,7 +1,7 @@
 {
   "name": "mytunes",
   "productName": "MyTunes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MyTunes — локальный музыкальный плеер",
   "main": "main.js",
   "author": "MyTunes",
