@@ -8,7 +8,8 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "screenshots": "electron scripts/screenshots.js"
   },
   "build": {
     "appId": "app.mytunes.player",

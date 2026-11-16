@@ -2,6 +2,20 @@
 
 Локальный музыкальный плеер в одном файле `index.html` (HTML + CSS + JS, без зависимостей) и Windows-приложение на Electron.
 
+![Главная](docs/screenshots/home.png)
+
+## Скриншоты
+
+| Плейлист | Сейчас играет: эквалайзер и визуализатор |
+|---|---|
+| ![Плейлист](docs/screenshots/playlist.png) | ![Сейчас играет](docs/screenshots/now-playing.png) |
+| **Очередь воспроизведения** | **Поиск** |
+| ![Очередь](docs/screenshots/queue.png) | ![Поиск](docs/screenshots/search.png) |
+| **Светлая тема и свой акцент** | **Мобильная версия** |
+| ![Светлая тема](docs/screenshots/light-theme.png) | <img src="docs/screenshots/mobile.png" width="200"> <img src="docs/screenshots/mobile-now-playing.png" width="200"> |
+
+> Скриншоты сделаны на демо-треках и пересоздаются командой `npm run screenshots`.
+
 ## Возможности
 - Загрузка своих треков (mp3, wav, ogg, flac, m4a, aac) кнопкой или drag & drop файлов и папок
 - Чтение ID3-тегов и обложек, хранение треков в IndexedDB
