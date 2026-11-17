@@ -174,6 +174,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 }
 #mprog{display:none}
 @media (max-width:768px){#mprog{display:block;position:absolute;left:8px;right:8px;bottom:0;height:2px;background:#ffffff30;border-radius:2px;overflow:hidden}#mprog i{display:block;height:100%;background:var(--tx);width:0}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tile{background:#ffffff0d;border-radius:var(--r);padding:16px}.tile b{display:block;font-size:2rem;line-height:1.1}.tile span{color:var(--tx2);font-size:.85rem}
+.bars{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:8px}.bars div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;min-width:0}
+.bars i{display:block;width:100%;background:var(--ac);border-radius:3px 3px 0 0;min-height:2px}.bars span{font-size:.7rem;color:var(--tx2);white-space:nowrap;height:1em}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:24px}@media (max-width:900px){.cols2{grid-template-columns:1fr}}
+.trow{display:flex;align-items:center;gap:12px;padding:6px 8px;border-radius:6px;cursor:pointer;width:100%;text-align:left}.trow:hover{background:#ffffff14}
+.trow .n{width:22px;text-align:right;color:var(--tx2);font-variant-numeric:tabular-nums;flex:none}.trow .cv{width:44px;height:44px;border-radius:4px;flex:none;background-size:cover;background-position:center}.trow .r{margin-left:auto;color:var(--tx2);font-size:.85rem;white-space:nowrap}
+.wbanner{display:flex;align-items:center;gap:16px;padding:20px 24px;border-radius:12px;background:linear-gradient(120deg,#ff2e93,#8338ec 55%,#3a86ff);color:#fff;width:100%;text-align:left;margin-top:8px}
+.wbanner b{font-size:1.5rem}.wbanner:hover{filter:brightness(1.1)}
+.wr{padding:0 24px 24px;display:grid;gap:16px}.ws{border-radius:16px;padding:40px 32px;color:#fff;min-height:300px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.ws h2{font-size:clamp(1.6rem,4vw,2.6rem);margin:0 0 8px;line-height:1.1}.ws .big{font-size:clamp(3rem,12vw,7rem);font-weight:900;line-height:1;letter-spacing:-.03em}
+.ws p{font-size:1.1rem;opacity:.92;margin:8px 0}.ws .trow{color:#fff}.ws .trow .r,.ws .trow .n,.ws .trow .muted{color:#ffffffc0}.ws .trow:hover{background:#ffffff22}
+.ws .acv{width:180px;height:180px;border-radius:50%;box-shadow:0 12px 40px #0007;margin-bottom:16px;background-size:cover;background-position:center}
+.ws.in{animation:wsIn .6s both}@keyframes wsIn{from{opacity:0;transform:translateY(24px)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
@@ -185,6 +199,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
       <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 12px;font-weight:800;font-size:1.25rem"><span style="color:var(--ac)" data-i="logo"></span>MyTunes</div>
       <button class="nav" data-go="home"><span data-i="home"></span>Главная</button>
       <button class="nav" data-go="search"><span data-i="search"></span>Поиск</button>
+      <button class="nav" data-go="stats"><span data-i="chart"></span>Статистика</button>
       <button class="nav" data-go="settings"><span data-i="gear"></span>Настройки</button>
     </nav>
     <section class="box" id="libbox" aria-label="Моя медиатека">
@@ -219,6 +234,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
     <button data-go="home"><span data-i="home"></span>Главная</button>
     <button data-go="search"><span data-i="search"></span>Поиск</button>
     <button data-go="library"><span data-i="lib"></span>Медиатека</button>
+    <button data-go="stats"><span data-i="chart"></span>Статистика</button>
     <button data-go="settings"><span data-i="gear"></span>Ещё</button>
   </nav>
 </div>
@@ -285,6 +301,7 @@ const ICONS = {
   search:'<svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 0 1 6.3 12.9l5.4 5.4-1.4 1.4-5.4-5.4A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>',
   lib:'<svg viewBox="0 0 24 24"><path d="M4 3h2v18H4zm5 0h2v18H9zm5.3.6 1.9-.6 5.6 17.4-1.9.6z"/></svg>',
   gear:'<svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.7a7 7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7 7 0 0 0 1.7 1L11 21h4l.4-2.7a7 7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>',
+  chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>',
   plus:'<svg viewBox="0 0 24 24"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>',
   pause:'<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>',
@@ -574,7 +591,7 @@ const Library = {
   /* Экспорт метаданных и плейлистов в JSON (без аудио) */
   exportJSON() {
     const data = { app: 'MyTunes', version: 1, exported: new Date().toISOString(),
-      tracks: this.list().map(({ cover, ...t }) => t), playlists: this.playlists.map(({ cover, ...p }) => p), liked: this.liked };
+      tracks: this.list().map(({ cover, ...t }) => t), playlists: this.playlists.map(({ cover, ...p }) => p), liked: this.liked, log: Stats.all() };
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     a.download = 'mytunes-library.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
@@ -589,6 +606,8 @@ const Library = {
       for (const p of d.playlists || []) { const tr = (p.tracks || []).map(id => idMap[id]).filter(Boolean);
         await this.createPlaylist(p.name, tr); }
       this.liked = [...new Set([...this.liked, ...(d.liked || []).map(id => idMap[id]).filter(Boolean)])]; LS.set('liked', this.liked);
+      if (Array.isArray(d.log)) { const seen = new Set(Stats.log.map(e => e.t + e.i));
+        for (const e of d.log) { const m = { ...e, i: idMap[e.i] || e.i }; if (!seen.has(m.t + m.i)) Stats.log.push(m); } Stats.log.sort((x, y) => x.t - y.t); Stats.save(); }
       toast(`Импорт: обновлено треков ${n}, плейлистов ${(d.playlists || []).length}`); UI.refresh();
     } catch (e) { toast('Не удалось прочитать JSON медиатеки', 1); }
   },
@@ -646,6 +665,47 @@ const Queue = {
 };
 
 /* =====================================================================
+   Stats — журнал прослушиваний (localStorage) и агрегаты для статистики / итогов года
+   ===================================================================== */
+const Stats = {
+  log: LS.get('log', []), cur: null, last: null, saved: 0,
+  init() { const c = LS.get('logCur'); if (c && c.s >= 10) this.log.push(c); this.save();
+    window.addEventListener('beforeunload', () => this.flush());
+    document.addEventListener('visibilitychange', () => document.hidden && this.save()); },
+  begin(t) { this.flush(); this.cur = { i: t.id, ti: t.title, a: t.artist, al: t.album, t: Date.now(), s: 0 }; this.last = null; this.saved = 0; },
+  tick(el) { const c = this.cur; if (!c || el.paused) { this.last = null; return; }
+    const ct = el.currentTime; if (this.last != null) { const d = ct - this.last; if (d > 0 && d < 2) c.s += d; } this.last = ct;
+    if (c.s - this.saved > 15) { this.saved = c.s; LS.set('logCur', this.pack(c)); } },
+  pack(c) { return { ...c, s: Math.round(c.s) }; },
+  flush() { const c = this.cur; this.cur = null; if (c && c.s >= 10) this.log.push(this.pack(c)); this.save(); },
+  save() { LS.set('log', this.log); LS.set('logCur', this.cur ? this.pack(this.cur) : null); },
+  all() { return this.cur && this.cur.s >= 10 ? [...this.log, this.pack(this.cur)] : this.log; },
+  years() { return [...new Set(this.all().map(e => new Date(e.t).getFullYear()))].sort((a, b) => b - a); },
+  range(p) { const now = Date.now(), d = 864e5, E = this.all();
+    if (p === 'week') return E.filter(e => e.t > now - 7 * d); if (p === 'month') return E.filter(e => e.t > now - 30 * d);
+    if (/^\d{4}$/.test(p)) return E.filter(e => new Date(e.t).getFullYear() === +p); return E; },
+  agg(E) {
+    const tr = new Map(), ar = new Map(), hour = Array(24).fill(0), dow = Array(7).fill(0), mon = Array(12).fill(0), days = new Map(); let sec = 0, plays = 0;
+    for (const e of E) { const dt = new Date(e.t), t = Library.get(e.i), a = t ? t.artist : e.a; sec += e.s; if (e.s >= 30) plays++;
+      const x = tr.get(e.i) || { id: e.i, ti: t ? t.title : e.ti, a, n: 0, s: 0 }; x.n++; x.s += e.s; tr.set(e.i, x);
+      const y = ar.get(a) || { a, n: 0, s: 0, ids: new Set() }; y.n++; y.s += e.s; y.ids.add(e.i); ar.set(a, y);
+      hour[dt.getHours()] += e.s; dow[(dt.getDay() + 6) % 7] += e.s; mon[dt.getMonth()] += e.s;
+      const k = dt.toDateString(); days.set(k, (days.get(k) || 0) + e.s); }
+    const by = (a, b) => b.s - a.s || b.n - a.n;
+    // самая длинная серия дней подряд
+    const ds = [...days.keys()].map(k => new Date(k).getTime()).sort((a, b) => a - b); let streak = 0, run = 0;
+    ds.forEach((v, k) => { run = k && Math.round((v - ds[k - 1]) / 864e5) === 1 ? run + 1 : 1; streak = Math.max(streak, run); });
+    const bestDay = [...days].sort((a, b) => b[1] - a[1])[0];
+    return { sec, plays, n: E.length, tracks: [...tr.values()].sort(by), artists: [...ar.values()].sort(by), hour, dow, mon, days: days.size, streak, bestDay };
+  },
+};
+const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+const MONTHS_F = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+const DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const nf = n => Math.round(n).toLocaleString('ru-RU');
+const plural = (n, a, b, c) => { n = Math.abs(Math.round(n)) % 100; const k = n % 10; return n > 10 && n < 20 ? c : k > 1 && k < 5 ? b : k === 1 ? a : c; };
+
+/* =====================================================================
    Player — два <audio> через Web Audio API: кроссфейд, gapless, EQ, анализатор
    ===================================================================== */
 const EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
@@ -657,7 +717,7 @@ const Player = {
   init() {
     this.els.forEach((a, k) => {
       a.preload = 'auto';
-      a.addEventListener('timeupdate', () => { if (k === this.cur) { this.checkFade(); UI.progress(); } });
+      a.addEventListener('timeupdate', () => { if (k === this.cur) { Stats.tick(a); this.checkFade(); UI.progress(); } });
       a.addEventListener('ended', () => { if (k === this.cur && !this.fading) this.onEnded(); });
       a.addEventListener('play', () => k === this.cur && UI.syncControls());
       a.addEventListener('pause', () => k === this.cur && UI.syncControls());
@@ -697,7 +757,7 @@ const Player = {
     if (autoplay) this.play(); this.started(t);
   },
   started(t) {
-    t.plays = (t.plays || 0) + 1; t.lastPlayed = Date.now(); Storage.put('tracks', t).catch(() => {});
+    Stats.begin(t); t.plays = (t.plays || 0) + 1; t.lastPlayed = Date.now(); Storage.put('tracks', t).catch(() => {});
     Library.pushRecent(t.id); UI.syncTrack(); Queue.save();
   },
   play() { if (!this.track) { if (Queue.list.length) return this.load(true); const l = UI.currentList(); if (l.length) { Queue.set(l.map(t => t.id)); return this.load(true); } return; }
@@ -858,6 +918,8 @@ const UI = {
       artist: () => { const ts = Library.artists().get(a) || []; return this.trackPage({ title: a, kind: 'Исполнитель', tracks: ts, coverTrack: ts.find(x => x.cover), round: true, sortable: true }); },
       album: () => { const ts = Library.albums().get(a) || []; const t0 = ts[0] || {}; return this.trackPage({ title: t0.album, kind: 'Альбом', sub: `${esc(t0.artist)}${t0.year ? ' · ' + esc(t0.year) : ''}`, tracks: ts, coverTrack: ts.find(x => x.cover) }); },
       settings: () => this.settings(),
+      stats: () => this.statsView(),
+      wrapped: () => this.wrapped(+a || new Date().getFullYear()),
     };
     (V[r] || V.home)();
     fillIcons(m);
@@ -995,6 +1057,75 @@ const UI = {
       row.oncontextmenu = e => { e.preventDefault(); this.trackMenu(e, Library.get(row.dataset.row)); };
       $('.more', row).onclick = e => { e.stopPropagation(); this.trackMenu(e, Library.get(row.dataset.row)); }; });
     this.markPlaying();
+  },
+  /* ---------- Статистика ---------- */
+  statPeriod: 'month',
+  topRows(items, kind) {
+    return items.map((x, k) => { if (kind === 't') return `<button class="trow" data-playtop="${x.id}"><span class="n">${k + 1}</span><div class="cv" style="${coverCSS(Library.get(x.id), x.ti)}"></div><div style="min-width:0"><b class="ell" style="display:block">${esc(x.ti)}</b><span class="sm muted ell" style="display:block">${esc(x.a)}</span></div><span class="r">${x.n} × · ${nf(x.s / 60)} мин</span></button>`;
+      const t = Library.list().find(y => y.artist === x.a && y.cover);
+      return `<button class="trow" data-go="artist" data-arg="${esc(x.a)}"><span class="n">${k + 1}</span><div class="cv" style="border-radius:50%;${coverCSS(t, x.a)}"></div><div style="min-width:0"><b class="ell" style="display:block">${esc(x.a)}</b><span class="sm muted">${x.ids.size} ${plural(x.ids.size, 'трек', 'трека', 'треков')}</span></div><span class="r">${nf(x.s / 60)} мин</span></button>`; }).join('');
+  },
+  barChart(vals, labels) { const mx = Math.max(...vals, 1);
+    return `<div class="bars">${vals.map((v, k) => `<div title="${nf(v / 60)} мин"><i style="height:${(v / mx * 100).toFixed(1)}%"></i><span>${labels[k]}</span></div>`).join('')}</div>`; },
+  bindTop(root) { if (!root) return; $$('[data-playtop]', root).forEach(b => b.onclick = () => { const id = b.dataset.playtop; if (!Library.get(id)) return toast('Этого трека больше нет в медиатеке', 1);
+    const ids = [...$$('[data-playtop]', root)].map(x => x.dataset.playtop).filter(i => Library.get(i)); Queue.set(ids, ids.indexOf(id)); Player.load(true); }); },
+  statsView() {
+    this.setHeader('#3a2a5a'); this.list = [];
+    const p = this.statPeriod, years = Stats.years(), y = new Date().getFullYear(), S = Stats.agg(Stats.range(p));
+    const per = [['week', '7 дней'], ['month', '30 дней'], ...years.map(v => [String(v), String(v)]), ['all', 'Всё время']];
+    const m = $('#main');
+    m.innerHTML = `<div class="hdr"><div><div class="sm" style="font-weight:600">Ваша музыка в цифрах</div><h1>Статистика</h1></div></div>
+      <div class="toolbar">${per.map(([v, n]) => `<button class="pill ${p === v ? 'on' : ''}" data-per="${v}">${n}</button>`).join('')}</div>
+      <div class="sec">
+        <button class="wbanner" data-go="wrapped" data-arg="${years[0] || y}"><div style="font-size:2.4rem">✦</div><div><b>Итоги ${years[0] || y} года</b><div>Главные треки, исполнители и привычки за год</div></div><span style="margin-left:auto;font-size:1.6rem">→</span></button>
+        ${!S.n ? `<div class="empty">${I('chart')}<h3>Пока нет данных</h3><p>Статистика копится, пока вы слушаете музыку: засчитывается каждый трек, который играл хотя бы 10 секунд.</p></div>` : `
+        <h2>Итого</h2><div class="tiles">
+          <div class="tile"><b>${nf(S.sec / 60)}</b><span>минут прослушано</span></div>
+          <div class="tile"><b>${nf(S.plays)}</b><span>прослушиваний</span></div>
+          <div class="tile"><b>${nf(S.tracks.length)}</b><span>разных треков</span></div>
+          <div class="tile"><b>${nf(S.artists.length)}</b><span>исполнителей</span></div>
+          <div class="tile"><b>${S.days}</b><span>${plural(S.days, 'день', 'дня', 'дней')} с музыкой</span></div>
+          <div class="tile"><b>${S.streak}</b><span>${plural(S.streak, 'день', 'дня', 'дней')} подряд — рекорд</span></div></div>
+        <div class="cols2"><div><h2>Топ треков</h2><div id="sTop">${this.topRows(S.tracks.slice(0, 10), 't')}</div></div><div><h2>Топ исполнителей</h2>${this.topRows(S.artists.slice(0, 10), 'a')}</div></div>
+        <div class="cols2"><div><h2>По времени суток</h2>${this.barChart(S.hour, S.hour.map((_, h) => h % 3 ? '' : h))}</div><div><h2>По дням недели</h2>${this.barChart(S.dow, DOW)}</div></div>
+        ${p === 'week' || p === 'month' ? '' : `<h2>По месяцам</h2>${this.barChart(S.mon, MONTHS)}`}`}
+      </div>`;
+    $$('[data-per]', m).forEach(b => b.onclick = () => { this.statPeriod = b.dataset.per; this.render(); });
+    this.bindTop($('#sTop'));
+  },
+  /* ---------- Итоги года ---------- */
+  wrapped(year) {
+    this.setHeader('#5a1e6e'); this.list = [];
+    const S = Stats.agg(Stats.range(String(year))), m = $('#main'), years = Stats.years();
+    const head = `<div class="hdr"><div><div class="sm" style="font-weight:600">MyTunes</div><h1>Итоги ${year}</h1></div></div>
+      ${years.length > 1 ? `<div class="toolbar">${years.map(v => `<button class="pill ${v === year ? 'on' : ''}" data-go="wrapped" data-arg="${v}">${v}</button>`).join('')}</div>` : ''}`;
+    if (!S.n) { m.innerHTML = head + `<div class="sec"><div class="empty">${I('chart')}<h3>За ${year} год пока ничего</h3><p>Слушайте музыку в MyTunes — итоги года соберутся автоматически.</p><button class="btn" data-go="home">На главную</button></div></div>`; return; }
+    const min = S.sec / 60, ta = S.artists[0], tt = S.tracks[0];
+    const taT = Library.list().find(t => t.artist === ta.a && t.cover), ttT = Library.get(tt.id);
+    const bm = S.mon.indexOf(Math.max(...S.mon)), bh = S.hour.indexOf(Math.max(...S.hour));
+    const part = [[0, 5, 'Ночная сова', 'Больше всего вы слушаете глубокой ночью — пока все спят, у вас играет музыка.'], [5, 12, 'Ранняя пташка', 'Ваш пик — утро. Музыка помогает вам проснуться и начать день.'],
+      [12, 18, 'Дневной слушатель', 'Чаще всего музыка звучит у вас днём — за работой, учёбой или в дороге.'], [18, 24, 'Вечерний меломан', 'Вечер — ваше время: больше всего вы слушаете, когда день подходит к концу.']]
+      .find(([a, b]) => bh >= a && bh < b);
+    const variety = S.tracks.length / Math.max(1, S.n);
+    const bd = S.bestDay && new Date(S.bestDay[0]);
+    const dec = v => v.toFixed(1).replace('.', ',');
+    const sl = (bg, html) => `<section class="ws in" style="background:${bg}">${html}</section>`;
+    m.innerHTML = head + `<div class="wr">
+      ${sl('linear-gradient(135deg,#ff2e93,#8338ec)', `<p>Ваш год в музыке</p><div class="big">${year}</div><p>Мы посчитали всё, что вы слушали в MyTunes. Листайте вниз.</p>`)}
+      ${sl('linear-gradient(135deg,#1DB954,#0b5d2a)', `<p>Вы слушали музыку</p><div class="big">${nf(min)}</div><h2>${plural(min, 'минуту', 'минуты', 'минут')}</h2><p>Это ${dec(min / 60)} ч, или ${dec(min / 1440)} суток без перерыва. ${S.plays} прослушиваний за ${S.days} ${plural(S.days, 'день', 'дня', 'дней')}.</p>`)}
+      ${sl('linear-gradient(135deg,#f77f00,#d62828)', `<div class="acv" style="${coverCSS(taT, ta.a)}"></div><p>Исполнитель года</p><h2>${esc(ta.a)}</h2><p>${nf(ta.s / 60)} мин и ${ta.ids.size} ${plural(ta.ids.size, 'разный трек', 'разных трека', 'разных треков')}. Это ${Math.round(ta.s / S.sec * 100)}% всего вашего времени с музыкой.</p>`)}
+      ${sl('linear-gradient(135deg,#3a86ff,#03045e)', `<div class="acv" style="border-radius:12px;${coverCSS(ttT, tt.ti)}"></div><p>Трек года</p><h2>${esc(tt.ti)}</h2><p>${esc(tt.a)} · вы включали его ${tt.n} ${plural(tt.n, 'раз', 'раза', 'раз')}</p>`)}
+      ${sl('linear-gradient(135deg,#7209b7,#3a0ca3)', `<h2>Топ-5 треков</h2><div id="wTop">${this.topRows(S.tracks.slice(0, 5), 't')}</div>`)}
+      ${sl('linear-gradient(135deg,#e63946,#6a040f)', `<h2>Топ-5 исполнителей</h2>${this.topRows(S.artists.slice(0, 5), 'a')}`)}
+      ${sl('linear-gradient(135deg,#118ab2,#073b4c)', `<p>Ваш тип слушателя</p><h2>${part[2]}</h2><p>${part[3]} Пик — около ${bh}:00.</p>
+        <p>Самый музыкальный месяц — <b>${MONTHS_F[bm]}</b>${bd ? `, самый насыщенный день — <b>${bd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</b> (${nf(S.bestDay[1] / 60)} мин)` : ''}.</p>
+        <p>Рекорд: ${S.streak} ${plural(S.streak, 'день', 'дня', 'дней')} подряд с музыкой. ${variety > .6 ? 'Вы любите открывать новое — почти каждый раз звучит другой трек.' : variety > .3 ? 'У вас баланс между любимым и новым.' : 'Вы верны любимым трекам и слушаете их снова и снова.'}</p>`)}
+      ${sl('linear-gradient(135deg,#ffb703,#fb8500)', `<h2>Соберём это в плейлист?</h2><p>Треки из вашего топа ${year} года — в одном плейлисте.</p><div class="chips" style="margin-top:12px"><button class="btn" id="wPl" style="background:#000;color:#fff">Создать «Мой топ ${year}»</button></div>`)}
+    </div>`;
+    this.bindTop($('#wTop'));
+    $('#wPl').onclick = async () => { const ids = S.tracks.map(x => x.id).filter(i => Library.get(i)).slice(0, 50);
+      if (!ids.length) return toast('Треков из топа больше нет в медиатеке', 1);
+      const pl = await Library.createPlaylist('Мой топ ' + year, ids); this.go('playlist', pl.id); };
   },
   async settings() {
     this.setHeader('#333'); this.list = [];
@@ -1236,7 +1367,7 @@ function applyTheme(theme, accent) {
    Запуск
    ===================================================================== */
 (async function boot() {
-  applyTheme(); UI.init(); Player.init(); UI.render(); UI.syncVolume();
+  applyTheme(); Stats.init(); UI.init(); Player.init(); UI.render(); UI.syncVolume();
   try { await Storage.open(); await Library.load(); }
   catch (e) { toast('IndexedDB недоступна — треки не будут сохраняться', 1); console.error(e); }
   UI.loading = false;

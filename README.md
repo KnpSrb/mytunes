@@ -11,6 +11,8 @@
 | ![Плейлист](docs/screenshots/playlist.png) | ![Сейчас играет](docs/screenshots/now-playing.png) |
 | **Очередь воспроизведения** | **Поиск** |
 | ![Очередь](docs/screenshots/queue.png) | ![Поиск](docs/screenshots/search.png) |
+| **Статистика прослушиваний** | **Итоги года** |
+| ![Статистика](docs/screenshots/stats.png) | ![Итоги года](docs/screenshots/wrapped.png) |
 | **Светлая тема и свой акцент** | **Мобильная версия** |
 | ![Светлая тема](docs/screenshots/light-theme.png) | <img src="docs/screenshots/mobile.png" width="200"> <img src="docs/screenshots/mobile-now-playing.png" width="200"> |
 
@@ -21,6 +23,7 @@
 - Чтение ID3-тегов и обложек, хранение треков в IndexedDB
 - Плейлисты, «Любимые треки», исполнители, альбомы, поиск, сортировка, вид списком/сеткой
 - Очередь с перетаскиванием, shuffle, repeat, кроссфейд 0–12 с, 10-полосный эквалайзер, визуализатор
+- Статистика прослушиваний (топы, минуты, графики по часам/дням/месяцам) и «Итоги года»
 - Горячие клавиши, Media Session API, тёмная/светлая тема, выбор акцента, экспорт/импорт JSON
 
 ## Запуск в браузере

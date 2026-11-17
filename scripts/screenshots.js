@@ -62,6 +62,13 @@ const SEED = `(async () => {
   coverURLs.clear(); colorCache.clear();
   Player.setVolume(0.6);
   Queue.set(Library.pl(Library.playlists[0].id).tracks, 0); await Player.load(true);
+  // история прослушиваний за год для статистики и итогов года
+  const ts2 = Library.list(), w = ts2.map((_, k) => 1 / (k + 1.5)), W = w.reduce((a, b) => a + b);
+  const pick = () => { let r = Math.random() * W; for (let k = 0; k < ts2.length; k++) if ((r -= w[k]) < 0) return ts2[k]; return ts2[0]; };
+  const y0 = new Date(new Date().getFullYear(), 0, 1).getTime();
+  for (let k = 0; k < 900; k++) { const t = pick(), d = new Date(y0 + Math.random() * (Date.now() - y0)); d.setHours([8, 13, 19, 21, 22, 23][k % 6], Math.random() * 60);
+    if (d.getTime() < Date.now()) Stats.log.push({ i: t.id, ti: t.title, a: t.artist, al: t.album, t: d.getTime(), s: Math.round(t.duration * (0.6 + Math.random() * 0.4)) }); }
+  Stats.log.sort((a, b) => a.t - b.t); Stats.save();
   UI.refresh(); return true;
 })()`;
 
@@ -81,7 +88,9 @@ app.whenReady().then(async () => {
   await js(`UI.toggleQueue(false); UI.go('search'); const i=document.querySelector('#sq'); i.value='neon'; UI.q='neon'; UI.renderResults()`); await shot('search.png');
   await js(`UI.toggleFull(true); document.querySelector('#full details').open = true`); await shot('now-playing.png', 1500);
   await js(`UI.toggleFull(false); applyTheme('light', '#1E90FF'); UI.go('liked')`); await shot('light-theme.png', 1400);
-  await js(`applyTheme('dark', '#1DB954'); UI.go('home')`);
+  await js(`applyTheme('dark', '#1DB954'); UI.statPeriod = String(new Date().getFullYear()); UI.go('stats')`); await shot('stats.png', 1400);
+  await js(`UI.go('wrapped', String(new Date().getFullYear())); document.querySelectorAll('.ws')[2].scrollIntoView()`); await shot('wrapped.png', 1400);
+  await js(`UI.go('home')`);
   win.setContentSize(390, 844); await shot('mobile.png', 1200);
   await js(`UI.toggleFull(true)`); await shot('mobile-now-playing.png', 1500);
   app.quit();
