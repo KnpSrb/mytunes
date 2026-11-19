@@ -60,7 +60,7 @@ nav.top{padding:12px}
 .card:hover .fab,.card:focus-within .fab{opacity:1;transform:none}
 /* Список треков */
 .tl{width:100%;border-collapse:collapse}
-.row{display:grid;grid-template-columns:32px minmax(0,4fr) minmax(0,3fr) minmax(0,2fr) 60px 40px;gap:16px;align-items:center;padding:6px 16px;border-radius:6px;color:var(--tx2);cursor:default}
+.row{display:grid;grid-template-columns:32px minmax(0,4fr) minmax(0,3fr) 92px minmax(0,1.4fr) 60px 40px;gap:16px;align-items:center;padding:6px 16px;border-radius:6px;color:var(--tx2);cursor:default}
 .row.head{border-bottom:1px solid var(--p3);border-radius:0;margin-bottom:8px;font-size:.85rem}
 .row:not(.head):hover{background:#ffffff14}.row.sel{background:#ffffff24}
 .row .n{text-align:right}.row:not(.head):hover .n span{display:none}.row .n button{display:none}.row:not(.head):hover .n button{display:inline-grid}
@@ -189,6 +189,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 .ws .acv{width:180px;height:180px;border-radius:50%;box-shadow:0 12px 40px #0007;margin-bottom:16px;background-size:cover;background-position:center}
 .ws.in{animation:wsIn .6s both}@keyframes wsIn{from{opacity:0;transform:translateY(24px)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* Оценки */
+.stars{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end;gap:1px;line-height:1}
+.stars button{width:18px;height:20px;padding:0;font-size:15px;color:var(--tx2);opacity:.45;transition:color .15s,opacity .15s}
+.stars button.f{color:var(--ac);opacity:1}
+.stars button:hover,.stars button:hover~button{color:var(--ac);opacity:1}
+.row .stars:not(.has){opacity:0}.row:hover .stars,.row .stars:focus-within{opacity:1}
+#fStars{margin-top:6px}#fStars .stars button{width:24px;height:26px;font-size:20px}
+/* Текст песни */
+#lyr{position:relative;width:100%;aspect-ratio:1;border-radius:8px;background:#0000003d;overflow:auto;padding:28px 24px 8px;display:none;overscroll-behavior:contain}
+#full.lyr #lyr{display:block}#full.lyr #fcv{display:none}
+#lyr p{font-size:1.45rem;font-weight:800;margin:0 0 14px;color:var(--tx);opacity:.42;cursor:pointer;transition:opacity .25s,transform .25s;line-height:1.3;transform-origin:left center}
+#lyr p:hover{opacity:.8}#lyr p.past{opacity:.62}#lyr p.on{opacity:1;transform:scale(1.03)}
+#lyr.plain p{cursor:text;opacity:.9;font-size:1.1rem;font-weight:600;margin:0 0 6px;transform:none}
+#lyr .lyrE{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;text-align:center;gap:10px;padding-bottom:20px}
+#lyr .lyrE p{font-size:.9rem;font-weight:400;opacity:1;cursor:default;margin:0;color:var(--tx2)}
+.lyrBar{position:sticky;bottom:-8px;margin:0 -24px;padding:12px 24px 10px!important;background:#0000009c;backdrop-filter:blur(12px);display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding:10px 0 4px;font-size:.8rem;color:var(--tx2)}
+.lyrBar .pill{padding:4px 10px;font-size:.8rem}
+@media (max-width:768px){#lyr{aspect-ratio:auto;height:54vh}}
+/* Баннер обновления */
+#upd{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);z-index:60;background:var(--p2);color:var(--tx);display:flex;gap:12px;align-items:center;padding:8px 8px 8px 16px;border-radius:12px;box-shadow:0 10px 40px #0009;max-width:calc(100% - 32px)}
+#upd .btn{padding:8px 16px}
+.card .cvi{display:grid;place-items:center;height:100%}.card .cvi svg{width:38%;height:38%;color:#fff;fill:#fff;opacity:.9}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -223,6 +245,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
     </div>
     <div class="ctrl" data-ctrl></div>
     <div class="right">
+      <button class="ib" id="lyrBtn" aria-label="Текст песни" title="Текст песни (L)"><span data-i="mic"></span></button>
       <button class="ib" id="qBtn" aria-label="Очередь" title="Очередь"><span data-i="queue"></span></button>
       <button class="ib" id="muteBtn" aria-label="Выключить звук"><span data-i="vol"></span></button>
       <input type="range" id="vol" min="0" max="1" step="0.01" aria-label="Громкость">
@@ -249,13 +272,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
   <div style="display:flex;justify-content:space-between;padding:16px 24px">
     <button class="ib" id="fClose" aria-label="Свернуть"><span data-i="down"></span></button>
     <b style="align-self:center">Сейчас играет</b>
-    <button class="ib" id="fQ" aria-label="Очередь"><span data-i="queue"></span></button>
+    <div style="display:flex;gap:4px"><button class="ib" id="fLyrB" aria-label="Текст песни" title="Текст песни (L)"><span data-i="mic"></span></button><button class="ib" id="fQ" aria-label="Очередь"><span data-i="queue"></span></button></div>
   </div>
   <div class="wrap">
-    <div><div class="cv" id="fcv"></div></div>
+    <div><div class="cv" id="fcv"></div><div id="lyr" aria-label="Текст песни"></div></div>
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div style="min-width:0"><h2 id="fTi" class="ell" style="margin:0;font-size:1.8rem">—</h2><div id="fAr" class="muted"></div></div>
+        <div style="min-width:0"><h2 id="fTi" class="ell" style="margin:0;font-size:1.8rem">—</h2><div id="fAr" class="muted"></div><div id="fStars"></div></div>
         <button class="ib like" id="fLike" aria-label="Добавить в любимые"><span data-i="heart"></span></button>
       </div>
       <div class="ctrl" data-ctrl style="margin-top:16px"></div>
@@ -274,7 +297,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 <div id="menu" role="menu"></div>
 <div id="toasts" aria-live="polite"></div>
 <div id="dragmask">Отпустите, чтобы добавить треки</div>
-<input type="file" id="fileIn" multiple accept=".mp3,.wav,.ogg,.oga,.flac,.m4a,.aac,.zip,audio/*" hidden>
+<input type="file" id="fileIn" multiple accept=".mp3,.wav,.ogg,.oga,.flac,.m4a,.aac,.zip,.lrc,audio/*" hidden>
+<input type="file" id="lrcIn" accept=".lrc,.txt" hidden>
 <input type="file" id="imgIn" accept="image/*" hidden>
 <input type="file" id="jsonIn" accept=".json,application/json" hidden>
 
@@ -321,6 +345,11 @@ const ICONS = {
   note:'<svg viewBox="0 0 24 24"><path d="M9 3v12.3A3.5 3.5 0 1 0 11 18.5V7h8V3z"/></svg>',
   upload:'<svg viewBox="0 0 24 24"><path d="M11 16V7.8L8.4 10.4 7 9l5-5 5 5-1.4 1.4L13 7.8V16zm-6 2h14v2H5z"/></svg>',
   list:'<svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>',
+  mic:'<svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg>',
+  spark:'<svg viewBox="0 0 24 24"><path d="m12 2 2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7zM19 15l1 2.5 2.5 1-2.5 1L19 22l-1-2.5-2.5-1 2.5-1z"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="m12 2 3 6.6 7.2.7-5.4 4.9 1.6 7.1L12 17.6l-6.4 3.7 1.6-7.1L1.8 9.3 9 8.6z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm1 3v4.6l3.5 2.1-1 1.7L11 12.7V7z"/></svg>',
+  radio:'<svg viewBox="0 0 24 24"><path d="M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM7.8 7.8l1.4 1.4a4 4 0 0 0 0 5.6l-1.4 1.4a6 6 0 0 1 0-8.4zm8.4 0a6 6 0 0 1 0 8.4l-1.4-1.4a4 4 0 0 0 0-5.6zM5 5l1.4 1.4a8 8 0 0 0 0 11.2L5 19A10 10 0 0 1 5 5zm14 0a10 10 0 0 1 0 14l-1.4-1.4a8 8 0 0 0 0-11.2z"/></svg>',
   gridI:'<svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>',
 };
 const I = n => ICONS[n] || '';
@@ -373,7 +402,10 @@ const Tags = {
     const out = {};
     try {
       const head = new DataView(await file.slice(0, 10).arrayBuffer());
-      if (head.byteLength < 10 || String.fromCharCode(head.getUint8(0), head.getUint8(1), head.getUint8(2)) !== 'ID3') return out;
+      if (head.byteLength < 10) return out;
+      const magic = String.fromCharCode(head.getUint8(0), head.getUint8(1), head.getUint8(2), head.getUint8(3));
+      if (magic === 'fLaC') return await this.flac(file);
+      if (magic.slice(0, 3) !== 'ID3') return out;
       const ver = head.getUint8(3), flags = head.getUint8(5);
       const size = this.syncsafe(head, 6);
       const buf = await file.slice(10, 10 + size).arrayBuffer(); const v = new DataView(buf);
@@ -389,10 +421,33 @@ const Tags = {
         const key = { TIT2:'title', TT2:'title', TPE1:'artist', TP1:'artist', TALB:'album', TAL:'album', TYER:'year', TYE:'year', TDRC:'year' }[id];
         if (key) out[key] = this.text(body).trim();
         else if (id === 'APIC' || id === 'PIC') { const pic = this.pic(body, id === 'PIC'); if (pic && !out.cover) out.cover = pic; }
+        else if ((id === 'USLT' || id === 'ULT') && !out.lyrics) out.lyrics = this.uslt(body);
       }
       if (out.year) out.year = out.year.slice(0, 4);
     } catch (e) { console.warn('ID3 parse error', e); }
     return out;
+  },
+  /* USLT: кодировка, язык (3 байта), описание до \0, затем сам текст */
+  uslt(b) { const enc = b[0]; let p = 4;
+    if (enc === 1 || enc === 2) { while (p + 1 < b.length && !(b[p] === 0 && b[p + 1] === 0)) p += 2; p += 2; } else { while (p < b.length && b[p] !== 0) p++; p++; }
+    return p < b.length ? this.decode(enc, b.subarray(p)).replace(/\0+$/, '').trim() : ''; },
+  /* FLAC: блоки метаданных VORBIS_COMMENT (теги, LYRICS) и PICTURE (обложка) */
+  async flac(file) {
+    const out = {}; let p = 4;
+    for (let k = 0; k < 128; k++) {
+      const h = new Uint8Array(await file.slice(p, p + 4).arrayBuffer()); if (h.length < 4) break;
+      const last = h[0] & 0x80, type = h[0] & 0x7f, len = h[1] << 16 | h[2] << 8 | h[3]; p += 4;
+      if (type === 4) { const b = new Uint8Array(await file.slice(p, p + len).arrayBuffer()), v = new DataView(b.buffer), td = new TextDecoder();
+        let q = 4 + v.getUint32(0, true); const n = v.getUint32(q, true); q += 4;
+        for (let i = 0; i < n && q + 4 <= b.length; i++) { const l = v.getUint32(q, true); q += 4; const c = td.decode(b.subarray(q, q + l)); q += l;
+          const e = c.indexOf('='), f = { TITLE: 'title', ARTIST: 'artist', ALBUM: 'album', DATE: 'year', LYRICS: 'lyrics', UNSYNCEDLYRICS: 'lyrics' }[c.slice(0, e).toUpperCase()];
+          if (f && !out[f]) out[f] = c.slice(e + 1).trim(); } }
+      else if (type === 6 && !out.cover) { const b = new Uint8Array(await file.slice(p, p + len).arrayBuffer()), v = new DataView(b.buffer);
+        let q = 4; const ml = v.getUint32(q); q += 4; const mime = new TextDecoder().decode(b.subarray(q, q + ml)); q += ml;
+        q += 4 + v.getUint32(q) + 16; const pl = v.getUint32(q); q += 4; out.cover = new Blob([b.slice(q, q + pl)], { type: mime || 'image/jpeg' }); }
+      p += len; if (last) break;
+    }
+    if (out.year) out.year = out.year.slice(0, 4); return out;
   },
   syncsafe(v, o) { return (v.getUint8(o) & 127) << 21 | (v.getUint8(o + 1) & 127) << 14 | (v.getUint8(o + 2) & 127) << 7 | (v.getUint8(o + 3) & 127); },
   decode(enc, b) {
@@ -430,6 +485,44 @@ const Tags = {
 };
 
 /* =====================================================================
+   Lyrics — тексты песен: теги (USLT / FLAC LYRICS), файлы .lrc, поиск в lrclib.net
+   ===================================================================== */
+const baseName = n => String(n || '').replace(/\.[^.]+$/, '').toLowerCase().trim();
+const Lyrics = {
+  /* → { synced, lines: [{ t, text }] } или null */
+  parse(raw) {
+    if (!raw || !String(raw).trim()) return null; let off = 0; const L = [], plain = [];
+    for (const line of String(raw).replace(/\r/g, '').split('\n')) {
+      const mo = line.match(/^\s*\[offset:\s*([+-]?\d+)\s*\]/i); if (mo) { off = +mo[1] / 1000; continue; }
+      const tags = [...line.matchAll(/\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g)];
+      if (tags.length) { const text = line.replace(/\[[^\]]*\]/g, '').replace(/<\d+:\d+(?:[.:]\d+)?>/g, '').trim();
+        for (const m of tags) L.push({ t: +m[1] * 60 + parseFloat(m[2].replace(':', '.')) - off, text }); }
+      else if (/^\s*\[[a-z]+:.*\]\s*$/i.test(line)) continue;
+      else plain.push(line);
+    }
+    if (L.length) { L.sort((a, b) => a.t - b.t); while (L.length && !L[L.length - 1].text) L.pop(); return { synced: true, lines: L }; }
+    const txt = plain.join('\n').trim(); return txt ? { synced: false, lines: txt.split('\n').map(text => ({ t: null, text })) } : null;
+  },
+  /* у треков, добавленных до v1.2, текст ещё не извлекался — читаем теги из файла один раз */
+  async ensure(t) {
+    if (typeof t.lyrics === 'string') return t.lyrics;
+    try { const b = await Storage.getFile(t.id); const tg = b ? await Tags.read(b) : {}; t.lyrics = tg.lyrics || ''; await Storage.put('tracks', t); } catch { t.lyrics = ''; }
+    return t.lyrics;
+  },
+  async online(t) {
+    const known = t.artist && t.artist !== 'Неизвестный исполнитель';
+    if (known) { const q = new URLSearchParams({ artist_name: t.artist, track_name: t.title });
+      if (t.album && t.album !== 'Без альбома') q.set('album_name', t.album); if (t.duration) q.set('duration', Math.round(t.duration));
+      const r = await fetch('https://lrclib.net/api/get?' + q); if (r.ok) { const d = await r.json(); if (d.syncedLyrics || d.plainLyrics) return d.syncedLyrics || d.plainLyrics; } }
+    const r = await fetch('https://lrclib.net/api/search?' + new URLSearchParams(known ? { track_name: t.title, artist_name: t.artist } : { q: t.title }));
+    if (!r.ok) throw new Error(r.status); const arr = await r.json();
+    const close = x => !t.duration || !x.duration || Math.abs(x.duration - t.duration) < 8;
+    const d = arr.find(x => x.syncedLyrics && close(x)) || arr.find(x => x.plainLyrics && close(x)) || arr.find(x => x.syncedLyrics || x.plainLyrics);
+    return d ? d.syncedLyrics || d.plainLyrics : '';
+  },
+};
+
+/* =====================================================================
    Zip — чтение ZIP-архивов без библиотек (stored и deflate через DecompressionStream)
    ===================================================================== */
 const Zip = {
@@ -461,17 +554,18 @@ const Zip = {
       p += 46 + nl + xl + cl;
       const name = new TextDecoder(flags & 0x800 ? 'utf-8' : 'ibm866').decode(nameBytes);
       const base = name.split('/').pop(), ext = base.split('.').pop().toLowerCase();
-      if (!base || !AUDIO_EXT.includes(ext) || base.startsWith('._')) continue;
+      if (!base || !(AUDIO_EXT.includes(ext) || ext === 'lrc') || base.startsWith('._')) continue;
       if (flags & 1) { toast(`Зашифрованный файл в архиве пропущен: ${base}`, 1); continue; }
       out.push({ base, ext, method, comp, off });
     }
     // файлы распаковываются лениво — по одному, при обработке
-    return out.map(e => ({ name: e.base, size: e.comp, type: 'audio/' + (e.ext === 'mp3' ? 'mpeg' : e.ext), lazy: async () => {
+    const mime = x => x === 'lrc' ? 'text/plain' : 'audio/' + (x === 'mp3' ? 'mpeg' : x);
+    return out.map(e => ({ name: e.base, size: e.comp, type: mime(e.ext), lazy: async () => {
       const lh = new DataView(await file.slice(e.off, e.off + 30).arrayBuffer());
       const start = e.off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true); const raw = file.slice(start, start + e.comp);
       let blob = e.method === 0 ? raw : e.method === 8 ? await new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob() : null;
       if (!blob) throw new Error('method ' + e.method);
-      return new File([blob], e.base, { type: 'audio/' + (e.ext === 'mp3' ? 'mpeg' : e.ext) });
+      return new File([blob], e.base, { type: mime(e.ext) });
     } }));
   },
 };
@@ -535,7 +629,16 @@ const Library = {
         catch (e) { console.error(e); toast(`Не удалось распаковать ${f.name}`, 1); }
       } else flat.push(f);
     }
-    files = flat; if (!files.length) { UI.busy(false); return; }
+    // .lrc сопоставляем с аудио по имени файла
+    const lrcs = new Map(), added = [];
+    files = flat.filter(f => { if (/\.lrc$/i.test(f.name)) { lrcs.set(baseName(f.name), f); return false; } return true; });
+    const readText = async f => (f.lazy ? await f.lazy() : f).text();
+    const attachLeft = async () => { let n = 0; if (!lrcs.size) return;
+      for (const [b, f] of lrcs) { const t = this.list().find(x => baseName(x.fileName) === b) || this.list().find(x => (x.artist + ' - ' + x.title).toLowerCase() === b);
+        if (!t) continue; try { t.lyrics = await readText(f); await this.update(t); n++; } catch {} }
+      if (n) toast(`Тексты песен добавлены: ${n}`); else if (!files.length) toast('Не нашлось треков с такими же именами, как у .lrc', 1);
+      if (n && Player.track) UI.renderLyrics(true); };
+    if (!files.length) { UI.busy(false); await attachLeft(); return added; }
     let ok = 0, bad = 0; UI.busy(true, files.length);
     for (let f of files) {
       if (f.lazy) { try { f = await f.lazy(); } catch (e) { bad++; toast(`Не удалось извлечь ${f.name} из архива`, 1); continue; } }
@@ -547,8 +650,9 @@ const Library = {
         const tags = await Tags.read(f), byName = Tags.fromName(f.name);
         const t = { id: uid(), title: tags.title || byName.title, artist: tags.artist || byName.artist || 'Неизвестный исполнитель',
           album: tags.album || 'Без альбома', year: tags.year || '', duration: dur, cover: tags.cover || null,
-          size: f.size, mime: f.type, fileName: f.name, added: Date.now(), plays: 0 };
-        await Storage.addTrack(t, f); this.tracks.set(t.id, t); ok++;
+          size: f.size, mime: f.type, fileName: f.name, added: Date.now(), plays: 0, lyrics: tags.lyrics || '' };
+        const lf = lrcs.get(baseName(f.name)); if (lf) { try { t.lyrics = await readText(lf); } catch {} lrcs.delete(baseName(f.name)); }
+        await Storage.addTrack(t, f); this.tracks.set(t.id, t); ok++; added.push(t.id);
         UI.busy(true, files.length - ok - bad);
       } catch (e) {
         bad++; console.error(e);
@@ -558,7 +662,12 @@ const Library = {
     }
     UI.busy(false);
     if (ok) toast(`Добавлено треков: ${ok}`);
-    UI.refresh();
+    await attachLeft(); UI.refresh(); return added;
+  },
+  /* Оценка 1–5 (повторное нажатие той же оценки снимает её) */
+  async rate(id, r) {
+    const t = this.get(id); if (!t) return; t.rating = r && t.rating === r ? 0 : r; await this.update(t);
+    toast(t.rating ? `Оценка «${t.title}»: ${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}` : 'Оценка снята'); UI.refresh(true);
   },
   async update(t) { await Storage.put('tracks', t); this.tracks.set(t.id, t); colorCache.delete(t.id); },
   async remove(id) {
@@ -602,7 +711,8 @@ const Library = {
       const byName = new Map(this.list().map(t => [t.fileName, t]));
       const idMap = {};
       for (const m of d.tracks || []) { const t = this.get(m.id) || byName.get(m.fileName); if (!t) continue;
-        idMap[m.id] = t.id; Object.assign(t, { title: m.title, artist: m.artist, album: m.album, year: m.year }); await this.update(t); n++; }
+        idMap[m.id] = t.id; Object.assign(t, { title: m.title, artist: m.artist, album: m.album, year: m.year });
+        if (m.rating != null) t.rating = m.rating; if (m.lyrics) t.lyrics = m.lyrics; if (m.lyrOff) t.lyrOff = m.lyrOff; if (m.skips) t.skips = m.skips; await this.update(t); n++; }
       for (const p of d.playlists || []) { const tr = (p.tracks || []).map(id => idMap[id]).filter(Boolean);
         await this.createPlaylist(p.name, tr); }
       this.liked = [...new Set([...this.liked, ...(d.liked || []).map(id => idMap[id]).filter(Boolean)])]; LS.set('liked', this.liked);
@@ -699,6 +809,80 @@ const Stats = {
     return { sec, plays, n: E.length, tracks: [...tr.values()].sort(by), artists: [...ar.values()].sort(by), hour, dow, mon, days: days.size, streak, bestDay };
   },
 };
+/* =====================================================================
+   Rec — рекомендации. Оценка трека складывается из:
+   оценки (★), лайка, «веса» исполнителя (сколько вы его слушали, с затуханием за 45 дней,
+   плюс оценки и лайки его треков), знакомости трека, совместных прослушиваний с недавними
+   треками (что звучит в одной сессии), новизны, давности последнего прослушивания и пропусков.
+   ===================================================================== */
+const Rec = {
+  _m: null, _k: '',
+  model() {
+    const E = Stats.all(), key = E.length + ':' + Library.tracks.size + ':' + (E[E.length - 1]?.t || 0);
+    if (this._m && this._k === key && Date.now() - this._m.at < 6e4) return this._m;
+    const now = Date.now(), HL = 45 * 864e5, art = new Map(), tr = new Map(), last = new Map(), co = new Map();
+    const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
+    E.forEach((e, k) => { const w = 0.5 ** ((now - e.t) / HL) * Math.min(1, e.s / 90), t = Library.get(e.i);
+      add(art, t ? t.artist : e.a, w); add(tr, e.i, w); last.set(e.i, Math.max(last.get(e.i) || 0, e.t));
+      for (let j = k + 1; j < Math.min(E.length, k + 5); j++) { const f = E[j]; if (f.t - e.t > 45 * 6e4) break; if (f.i === e.i) continue;
+        add(co, e.i + '|' + f.i, 1); add(co, f.i + '|' + e.i, 1); } });
+    let artMax = 1e-9, trMax = 1e-9;
+    for (const t of Library.list()) { if (t.rating) add(art, t.artist, (t.rating - 3) * 0.4); if (Library.isLiked(t.id)) add(art, t.artist, 0.5);
+      if (t.lastPlayed) last.set(t.id, Math.max(last.get(t.id) || 0, t.lastPlayed)); }
+    for (const v of art.values()) artMax = Math.max(artMax, v); for (const v of tr.values()) trMax = Math.max(trMax, v);
+    this._m = { at: now, art, tr, last, co, artMax, trMax }; this._k = key; return this._m;
+  },
+  parts(t, M, seeds = []) {
+    const r = t.rating || 0, last = M.last.get(t.id), days = last ? (Date.now() - last) / 864e5 : null; let co = 0;
+    for (const s of seeds) co += M.co.get(s + '|' + t.id) || 0;
+    return { rating: r ? (r - 3) / 2 * 1.6 : 0, liked: Library.isLiked(t.id) ? 1 : 0,
+      artist: Math.max(0, (M.art.get(t.artist) || 0) / M.artMax) * 1.2, fam: (M.tr.get(t.id) || 0) / M.trMax * 0.5,
+      co: Math.min(1, co / 3) * 1.1, novelty: days === null && !t.plays ? 0.45 : 0,
+      fresh: days === null ? 0 : days < 0.5 ? -1.2 : days < 3 ? -0.4 : Math.min(0.5, days / 60),
+      skip: -1.5 * (t.skips || 0) / ((t.plays || 0) + 2), ban: r === 1 ? -4 : 0 };
+  },
+  score(t, M, seeds) { const p = this.parts(t, M, seeds); let s = Math.random() * 0.35; for (const k in p) s += p[k]; return s; },
+  why(t, M, seeds) { const p = this.parts(t, M, seeds);
+    if (t.rating >= 4) return 'Ваша оценка ' + '★'.repeat(t.rating); if (p.liked) return 'Из любимых треков';
+    if (p.novelty) return 'Ещё не слушали · ' + t.artist; if (p.fresh > 0.3) return 'Давно не звучал · ' + t.artist;
+    if (p.co > 0.8) return 'Под стать недавним · ' + t.artist; if (p.artist > 0.6) return 'Вы часто слушаете ' + t.artist; return t.artist; },
+  rank(list, n, seeds, perArtist = 3) {
+    const M = this.model(), sc = list.map(t => [t, this.score(t, M, seeds)]).sort((a, b) => b[1] - a[1]), cnt = new Map(), out = [];
+    for (const [t] of sc) { const c = cnt.get(t.artist) || 0; if (c >= perArtist) continue; cnt.set(t.artist, c + 1); out.push(t); if (out.length >= n) return out; }
+    for (const [t] of sc) { if (!out.includes(t)) out.push(t); if (out.length >= n) break; } return out;
+  },
+  /* «Микс для вас» — пересобирается раз в день или по кнопке */
+  mix(force) {
+    const day = new Date().toDateString(), c = LS.get('mix');
+    if (!force && c && c.day === day && c.n === Library.tracks.size && c.ids.every(id => Library.get(id))) return c.ids.map(id => Library.get(id));
+    const ts = this.rank(Library.list(), 50, Library.recent.slice(0, 10)); LS.set('mix', { day, n: Library.tracks.size, ids: ts.map(t => t.id) }); return ts;
+  },
+  /* «Радио» — похожие на трек: тот же исполнитель/альбом, совместные прослушивания, близкий год */
+  radio(seed, n = 40) {
+    const M = this.model(), rel = new Map(); let rm = 1;
+    for (const [k, v] of M.co) { const [a, b] = k.split('|'); if (a !== seed.id) continue; const t = Library.get(b); if (t) { const x = (rel.get(t.artist) || 0) + v; rel.set(t.artist, x); rm = Math.max(rm, x); } }
+    const sc = Library.list().filter(t => t.id !== seed.id).map(t => { let s = this.score(t, M, [seed.id]) * 0.6 + Math.random() * 0.8;
+      if (t.artist === seed.artist) s += 1.4; if (t.album === seed.album && t.artist === seed.artist) s += 0.4;
+      s += (rel.get(t.artist) || 0) / rm * 1.2 + Math.min(1, (M.co.get(seed.id + '|' + t.id) || 0) / 2) * 1.5;
+      if (seed.year && t.year && Math.abs(+seed.year - +t.year) <= 3) s += 0.3; return [t, s]; }).sort((a, b) => b[1] - a[1]);
+    const cnt = new Map(), out = [seed];
+    for (const [t] of sc) { const c = cnt.get(t.artist) || 0; if (c >= 6) continue; cnt.set(t.artist, c + 1); out.push(t); if (out.length >= n) break; }
+    return out;
+  },
+};
+/* Умные плейлисты — собираются автоматически при каждом открытии */
+const SMART = [
+  { k: 'mix', name: 'Микс для вас', desc: 'Подборка по вашим оценкам, лайкам и истории прослушиваний. Обновляется каждый день', bg: 'linear-gradient(135deg,#ff2e93,#3a86ff)', col: '#6a2a7a', icon: 'spark', get: () => Rec.mix() },
+  { k: 'top', name: 'Топ месяца', desc: 'Больше всего звучало за последние 30 дней', bg: 'linear-gradient(135deg,#f77f00,#d62828)', col: '#8a3a1a', icon: 'chart',
+    get: () => Stats.agg(Stats.range('month')).tracks.map(x => Library.get(x.id)).filter(Boolean).slice(0, 50) },
+  { k: 'rated', name: 'Высокие оценки', desc: 'Треки с оценкой 4 и 5 звёзд', bg: 'linear-gradient(135deg,#ffb703,#fb8500)', col: '#8a5a10', icon: 'star',
+    get: () => Library.list().filter(t => t.rating >= 4).sort((a, b) => b.rating - a.rating || (b.plays || 0) - (a.plays || 0)) },
+  { k: 'forgotten', name: 'Давно не слушал', desc: 'Звучали раньше, но не включались больше месяца', bg: 'linear-gradient(135deg,#118ab2,#073b4c)', col: '#0e4a60', icon: 'clock',
+    get: () => { const M = Rec.model(), lim = Date.now() - 30 * 864e5, w = t => (t.rating || 3) * 2 + Math.min(20, t.plays || 0) + (Library.isLiked(t.id) ? 6 : 0);
+      return Library.list().filter(t => { const l = M.last.get(t.id); return l && l < lim; }).sort((a, b) => w(b) - w(a)).slice(0, 100); } },
+  { k: 'never', name: 'Никогда не играл', desc: 'Треки, которые вы ещё ни разу не включали', bg: 'linear-gradient(135deg,#06d6a0,#1b4332)', col: '#145a40', icon: 'note',
+    get: () => { const M = Rec.model(); return Library.list().filter(t => !t.plays && !M.last.has(t.id)).sort((a, b) => b.added - a.added); } },
+];
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const MONTHS_F = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 const DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -711,7 +895,7 @@ const plural = (n, a, b, c) => { n = Math.abs(Math.round(n)) % 100; const k = n 
 const EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const Player = {
   els: [new Audio(), new Audio()], cur: 0, urls: [null, null], ctx: null, gains: [], filters: [], master: null, analyser: null,
-  track: null, fading: false, volume: LS.get('volume', 0.8), muted: LS.get('muted', false), xfade: LS.get('xfade', 0),
+  track: null, fading: false, pre: null, preloading: false, gapTimer: null, pendingStart: null, gapless: LS.get('gapless', true), volume: LS.get('volume', 0.8), muted: LS.get('muted', false), xfade: LS.get('xfade', 0),
   eq: LS.get('eq', EQ_BANDS.map(() => 0)),
   get el() { return this.els[this.cur]; },
   init() {
@@ -750,22 +934,27 @@ const Player = {
   async load(autoplay = true, pos = 0) {
     const id = Queue.current(); const t = Library.get(id);
     if (!t) { this.track = null; UI.syncTrack(); return; }
-    this.fading = false; this.els[1 - this.cur].pause();
+    this.fading = false; this.pre = null; clearInterval(this.gapTimer); this.gapTimer = null; this.els[1 - this.cur].pause();
     if (this.gains.length) { const n = this.ctx.currentTime; this.gains.forEach((g, k) => { g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(k === this.cur ? 1 : 0, n); }); }
     try { await this.loadInto(this.cur, id); } catch { toast('Файл трека не найден в хранилище', 1); return; }
     this.track = t; if (pos) this.el.currentTime = pos;
-    if (autoplay) this.play(); this.started(t);
+    // восстановленный при запуске трек не считается прослушанным, пока его не включат
+    if (autoplay) { this.pendingStart = null; this.started(t); this.play(); } else { this.pendingStart = t; UI.syncTrack(); }
   },
   started(t) {
     Stats.begin(t); t.plays = (t.plays || 0) + 1; t.lastPlayed = Date.now(); Storage.put('tracks', t).catch(() => {});
     Library.pushRecent(t.id); UI.syncTrack(); Queue.save();
   },
   play() { if (!this.track) { if (Queue.list.length) return this.load(true); const l = UI.currentList(); if (l.length) { Queue.set(l.map(t => t.id)); return this.load(true); } return; }
+    if (this.pendingStart) { const t = this.pendingStart; this.pendingStart = null; this.started(t); }
     this.graph(); this.el.play().catch(e => console.warn(e)); },
   pause() { this.el.pause(); },
   toggle() { this.el.paused ? this.play() : this.pause(); },
   seek(s) { if (this.track) { this.el.currentTime = Math.max(0, Math.min(s, this.el.duration || 0)); UI.progress(); } },
   next(manual = true) {
+    // пропуск: трек переключили вручную, не дослушав до половины (и до 30 секунд) — учитывается в рекомендациях
+    const t = this.track, ct = this.el.currentTime;
+    if (manual && t && !this.pendingStart && ct > 1 && ct < Math.min(30, (this.el.duration || 60) * 0.5)) { t.skips = (t.skips || 0) + 1; Storage.put('tracks', t).catch(() => {}); }
     const n = Queue.peek(manual); if (n < 0) { this.pause(); this.el.currentTime = 0; return; }
     Queue.i = n; this.load(true);
   },
@@ -778,18 +967,38 @@ const Player = {
     this.next(false);
   },
   /* Кроссфейд / gapless: следующий трек стартует заранее на втором <audio>, громкости плавно меняются */
+  /* Длина перехода: внутри одного альбома при «склейке» — 0 (встык), иначе — настройка кроссфейда */
+  xfFor(a, b) {
+    if (this.gapless && a && b && a.album === b.album && a.artist === b.artist && a.album !== 'Без альбома') return 0;
+    return this.xfade;
+  },
+  /* Переходы между треками. Следующий трек заранее загружается во второй <audio> (за 8 с до перехода),
+     поэтому старт мгновенный. Без кроссфейда момент переключения ловится таймером с шагом 4 мс,
+     а не по timeupdate (он срабатывает лишь раз в ~250 мс) — так треки идут без паузы. */
   async checkFade() {
     const a = this.el; if (this.fading || !this.gains.length || !a.duration || a.paused || Queue.repeat === 'one') return;
-    const lead = this.xfade > 0 ? this.xfade : 0.15; const left = a.duration - a.currentTime;
-    if (left > lead || a.duration < lead * 2) return;
-    const n = Queue.peek(false); if (n < 0) return;
-    this.fading = true; const nk = 1 - this.cur, id = Queue.list[n];
-    try { await this.loadInto(nk, id); } catch { this.fading = false; return; }
-    const now = this.ctx.currentTime, dur = Math.max(0.05, Math.min(left, this.xfade || 0.05));
+    const left = a.duration - a.currentTime, n = Queue.peek(false); if (n < 0) return;
+    const id = Queue.list[n], nt = Library.get(id); if (!nt) return;
+    const xf = Math.min(this.xfFor(this.track, nt), a.duration / 3);
+    if (left > xf + 8) return;
+    if (!this.pre || this.pre.id !== id) {
+      if (this.preloading) return; this.preloading = true; const nk = 1 - this.cur;
+      try { await this.loadInto(nk, id); this.els[nk].currentTime = 0; this.pre = { id, k: nk }; } catch { this.pre = null; }
+      this.preloading = false; return;
+    }
+    if (xf > 0.05) { if (left <= xf) this.switchTo(n, id, xf); return; }
+    if (left <= 1.5 && !this.gapTimer) this.gapTimer = setInterval(() => {
+      if (this.el !== a || this.fading) { clearInterval(this.gapTimer); this.gapTimer = null; return; }
+      if (a.paused) return;
+      if (a.duration - a.currentTime <= 0.045) { clearInterval(this.gapTimer); this.gapTimer = null; if (Queue.list[n] === id) this.switchTo(n, id, 0.03); }
+    }, 4);
+  },
+  switchTo(n, id, dur) {
+    const nk = 1 - this.cur, old = this.el, now = this.ctx.currentTime; this.fading = true; this.pre = null;
     const g0 = this.gains[this.cur].gain, g1 = this.gains[nk].gain;
     g0.cancelScheduledValues(now); g0.setValueAtTime(1, now); g0.linearRampToValueAtTime(0, now + dur);
     g1.cancelScheduledValues(now); g1.setValueAtTime(0, now); g1.linearRampToValueAtTime(1, now + dur);
-    const old = this.els[this.cur]; this.els[nk].currentTime = 0; this.els[nk].play().catch(() => {});
+    this.els[nk].play().catch(() => {});
     this.cur = nk; Queue.i = n; this.track = Library.get(id); this.started(this.track);
     setTimeout(() => { old.pause(); this.fading = false; }, dur * 1000 + 300);
   },
@@ -846,6 +1055,9 @@ const UI = {
     $('#muteBtn').onclick = () => Player.toggleMute();
     $('#bLike').onclick = $('#fLike').onclick = () => Library.toggleLike(Player.track?.id);
     $('#qBtn').onclick = $('#fQ').onclick = () => this.toggleQueue();
+    $('#lyrBtn').onclick = () => { if (!$('#full').classList.contains('open')) { this.toggleLyrics(true); this.toggleFull(true); } else this.toggleLyrics(); };
+    $('#fLyrB').onclick = () => this.toggleLyrics();
+    this.toggleLyrics(this.lyrMode, true);
     $('#qClose').onclick = () => this.toggleQueue(false);
     $('#fullBtn').onclick = () => this.toggleFull();
     $('#bCv').onclick = () => this.toggleFull(true);
@@ -890,6 +1102,8 @@ const UI = {
         <div><b>Любимые треки</b><div class="muted sm">Плейлист · ${liked} тр.</div></div></button>
       <button class="pl ${this.route === 'recent' ? 'on' : ''}" data-go="recent" role="listitem"><div class="cv" style="background:linear-gradient(135deg,#1e3264,#e8115b);display:grid;place-items:center">${I('note')}</div>
         <div><b>Недавно прослушанные</b><div class="muted sm">Авто-плейлист</div></div></button>
+      ${SMART.map(x => `<button class="pl ${this.route === 'smart' && this.arg === x.k ? 'on' : ''}" data-go="smart" data-arg="${x.k}" role="listitem"><div class="cv" style="background:${x.bg};display:grid;place-items:center">${I(x.icon)}</div>
+        <div><b>${x.name}</b><div class="muted sm">Умный плейлист</div></div></button>`).join('')}
       ${Library.playlists.map(p => `<button class="pl ${this.route === 'playlist' && this.arg === p.id ? 'on' : ''}" data-go="playlist" data-arg="${p.id}" role="listitem" data-pl="${p.id}">
         <div class="cv" style="${this.plCover(p)}"></div><div style="min-width:0"><b class="ell" style="display:block">${esc(p.name)}</b><div class="muted sm">Плейлист · ${p.tracks.length} тр.</div></div></button>`).join('')}`;
     $$('#pls [data-pl]').forEach(b => b.oncontextmenu = e => { e.preventDefault(); this.plMenu(e, Library.pl(b.dataset.pl)); });
@@ -918,6 +1132,8 @@ const UI = {
       artist: () => { const ts = Library.artists().get(a) || []; return this.trackPage({ title: a, kind: 'Исполнитель', tracks: ts, coverTrack: ts.find(x => x.cover), round: true, sortable: true }); },
       album: () => { const ts = Library.albums().get(a) || []; const t0 = ts[0] || {}; return this.trackPage({ title: t0.album, kind: 'Альбом', sub: `${esc(t0.artist)}${t0.year ? ' · ' + esc(t0.year) : ''}`, tracks: ts, coverTrack: ts.find(x => x.cover) }); },
       settings: () => this.settings(),
+      smart: () => { const x = SMART.find(y => y.k === a); if (!x) return this.go('home');
+        return this.trackPage({ title: x.name, kind: 'Умный плейлист', sub: esc(x.desc), tracks: x.get(), cover: `background-image:${x.bg}`, color: x.col, smart: x }); },
       stats: () => this.statsView(),
       wrapped: () => this.wrapped(+a || new Date().getFullYear()),
     };
@@ -933,7 +1149,7 @@ const UI = {
   },
   card(o) {
     return `<div class="card" role="button" tabindex="0" data-go="${o.go}" data-arg="${esc(o.arg)}" aria-label="${esc(o.title)}">
-      <div class="cv ${o.round ? 'round' : ''}" style="${coverCSS(o.t, o.title)}"></div>
+      <div class="cv ${o.round ? 'round' : ''}" style="${o.css || coverCSS(o.t, o.title)}">${o.icon ? `<span class="cvi">${I(o.icon)}</span>` : ''}</div>
       <button class="play-big fab" data-playids="${esc(JSON.stringify(o.ids))}" aria-label="Воспроизвести ${esc(o.title)}">${I('play')}</button>
       <b>${esc(o.title)}</b><span class="muted">${esc(o.sub)}</span></div>`;
   },
@@ -950,12 +1166,17 @@ const UI = {
     const added = [...all].sort((a, b) => b.added - a.added).slice(0, 8);
     const artists = [...Library.artists()].slice(0, 8), albums = [...Library.albums()].slice(0, 8);
     const trackCard = t => this.card({ title: t.title, sub: t.artist, t, go: 'album', arg: t.album + '\u0001' + t.artist, ids: [t.id] });
+    const mix = all.length >= 4 ? Rec.mix() : [], M = Rec.model(), seeds = Library.recent.slice(0, 10), mixIds = mix.map(t => t.id);
+    const recBlock = mix.length ? `<h2><button data-go="smart" data-arg="mix" style="font-weight:700">Рекомендации для вас</button></h2><div class="grid">${mix.slice(0, 10).map(t =>
+      this.card({ title: t.title, sub: Rec.why(t, M, seeds), t, go: 'album', arg: t.album + '\u0001' + t.artist, ids: [t.id, ...mixIds.filter(i => i !== t.id)] })).join('')}</div>` : '';
     m.innerHTML = `<div class="hdr" style="padding-bottom:8px"><h1 style="font-size:2rem">${greet}</h1></div>
       <div class="sec">
         <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px">
           ${[['liked', 'Любимые треки', 'linear-gradient(135deg,#450af5,#8e8ee5)'], ['added', 'Недавно добавленные', gradientFor('added')], ['recent', 'Недавно прослушанные', 'linear-gradient(135deg,#1e3264,#e8115b)'], ['library', 'Все треки', 'linear-gradient(135deg,var(--ac),#0b3d20)']]
             .map(([g, n, bg]) => `<button class="pl" data-go="${g}" style="background:#ffffff12;padding:0;overflow:hidden;gap:16px"><div class="cv" style="width:64px;height:64px;border-radius:0;background-image:${bg}"></div><b>${n}</b></button>`).join('')}
         </div>
+        ${recBlock}
+        <h2>Умные плейлисты</h2><div class="grid">${SMART.map(x => { const ts = x.get(); return this.card({ title: x.name, sub: ts.length ? `${ts.length} тр. · ${x.desc.split('.')[0].toLowerCase()}` : 'Пока пусто', css: `background-image:${x.bg}`, icon: x.icon, go: 'smart', arg: x.k, ids: ts.map(t => t.id) }); }).join('')}</div>
         ${recent.length ? `<h2>Недавно прослушанные</h2><div class="grid">${recent.map(trackCard).join('')}</div>` : ''}
         <h2>Недавно добавленные</h2><div class="grid">${added.map(trackCard).join('')}</div>
         <h2><button data-go="artists" style="font-weight:700">Исполнители</button></h2><div class="grid">${artists.map(([n, ts]) => this.card({ title: n, sub: 'Исполнитель', t: ts.find(x => x.cover) || ts[0], go: 'artist', arg: n, round: true, ids: ts.map(x => x.id) })).join('')}</div>
@@ -972,7 +1193,7 @@ const UI = {
   sortTracks(ts) {
     const s = this.sort, c = (a, b) => String(a).localeCompare(String(b), 'ru');
     return [...ts].sort({ title: (a, b) => c(a.title, b.title), artist: (a, b) => c(a.artist, b.artist) || c(a.title, b.title),
-      added: (a, b) => b.added - a.added, duration: (a, b) => a.duration - b.duration }[s] || (() => 0));
+      added: (a, b) => b.added - a.added, duration: (a, b) => a.duration - b.duration, rating: (a, b) => (b.rating || 0) - (a.rating || 0) || c(a.title, b.title) }[s] || (() => 0));
   },
   /* Универсальная страница со списком треков (плейлист, альбом, исполнитель, медиатека) */
   trackPage(o) {
@@ -989,21 +1210,28 @@ const UI = {
         <button class="play-big" id="pgPlay" aria-label="Воспроизвести">${I('play')}</button>
         <button class="ib" id="pgShuf" aria-label="Перемешать и воспроизвести" title="Перемешать">${I('shuffle')}</button>
         ${o.pl ? `<button class="ib" id="pgMore" aria-label="Действия с плейлистом">${I('more')}</button>` : ''}
+        ${o.smart?.k === 'mix' ? '<button class="pill" id="mixNew">Обновить подборку</button>' : ''}
+        ${o.smart && ts.length ? '<button class="pill" id="smSave">Сохранить как плейлист</button>' : ''}
         <span style="flex:1"></span>
         ${o.sortable ? `<label class="sm muted">Сортировка <select class="inp" id="sortSel" style="width:auto;padding:6px 8px" aria-label="Сортировка">
-          ${[['added', 'Дата добавления'], ['title', 'Название'], ['artist', 'Исполнитель'], ['duration', 'Длительность']].map(([v, n]) => `<option value="${v}" ${this.sort === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
+          ${[['added', 'Дата добавления'], ['title', 'Название'], ['artist', 'Исполнитель'], ['rating', 'Оценка'], ['duration', 'Длительность']].map(([v, n]) => `<option value="${v}" ${this.sort === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
         <button class="ib ${this.view === 'list' ? 'on' : ''}" data-view="list" aria-label="Вид списком">${I('list')}</button>
         <button class="ib ${this.view === 'grid' ? 'on' : ''}" data-view="grid" aria-label="Вид сеткой">${I('gridI')}</button>
       </div>
       <div class="sec">${ts.length ? (this.view === 'grid'
         ? `<div class="grid">${ts.map(t => `<div class="card" role="button" tabindex="0" data-row="${t.id}" aria-label="${esc(t.title)}"><div class="cv" style="${coverCSS(t)}"></div><button class="play-big fab" data-rowplay aria-label="Воспроизвести ${esc(t.title)}">${I('play')}</button><b>${esc(t.title)}</b><span class="muted">${esc(t.artist)}</span></div>`).join('')}</div>`
-        : this.rows(ts, o)) : (o.pl ? `<div class="empty">${I('note')}<h3>Плейлист пуст</h3><p>Добавляйте треки через меню «···» или правый клик по треку.</p><button class="btn" data-go="library">Открыть медиатеку</button></div>` : this.emptyUpload())}
+        : this.rows(ts, o)) : o.smart ? `<div class="empty">${I(o.smart.icon)}<h3>Пока пусто</h3><p>${{ mix: 'Добавьте несколько треков — подборка появится сразу.', top: 'Послушайте музыку — здесь соберётся ваш топ за 30 дней.', rated: 'Ставьте оценки трекам: клик по звёздам в списке, в «Сейчас играет» или клавиши 1–5.', forgotten: 'Здесь появятся треки, которые вы не включали больше месяца.', never: 'Вы уже послушали все треки медиатеки!' }[o.smart.k]}</p></div>`
+      : (o.pl ? `<div class="empty">${I('note')}<h3>Плейлист пуст</h3><p>Добавляйте треки через меню «···» или правый клик по треку.</p><button class="btn" data-go="library">Открыть медиатеку</button></div>` : this.emptyUpload())}
       </div>`;
     const playFrom = (k, shuffle) => { if (!ts.length) return; if (shuffle && !Queue.shuffle) Queue.toggleShuffle(); Queue.set(ts.map(t => t.id), k); Player.load(true); };
     $('#pgPlay').onclick = () => { if (Player.track && ts.some(t => t.id === Player.track.id) && Queue.list.join() === ts.map(t => t.id).join()) Player.toggle(); else playFrom(0); };
     $('#pgShuf').onclick = () => playFrom(Math.random() * ts.length | 0, true);
     $('#sortSel') && ($('#sortSel').onchange = e => { this.sort = e.target.value; LS.set('sort', this.sort); this.render(); });
     $$('[data-view]', m).forEach(b => b.onclick = () => { this.view = b.dataset.view; LS.set('view', this.view); this.render(); });
+    if (o.smart) {
+      $('#mixNew') && ($('#mixNew').onclick = () => { Rec.mix(true); this.render(); toast('Подборка обновлена'); });
+      $('#smSave') && ($('#smSave').onclick = async () => { const p = await Library.createPlaylist(`${o.title} · ${new Date().toLocaleDateString('ru-RU')}`, ts.map(t => t.id)); toast(`Создан «${p.name}»`); });
+    }
     if (o.pl) {
       $('#plName').onclick = () => this.renamePl(o.pl);
       $('#plCover').onclick = () => this.pickImage(async blob => { o.pl.cover = blob; o.pl._u = null; await Library.savePl(o.pl); });
@@ -1017,14 +1245,18 @@ const UI = {
       r.addEventListener('contextmenu', e => { e.preventDefault(); this.trackMenu(e, Library.get(r.dataset.row), o.pl); });
       const mb = $('.more', r); mb && (mb.onclick = e => { e.stopPropagation(); this.trackMenu(e, Library.get(r.dataset.row), o.pl); });
     });
-    this.bindDropZone(); this.markPlaying();
+    this.bindStars(m); this.bindDropZone(); this.markPlaying();
   },
+  starsHTML(t) { const r = t.rating || 0;
+    return `<span class="stars ${r ? 'has' : ''}" data-stars="${t.id}" role="group" aria-label="Оценка: ${r} из 5">${[5, 4, 3, 2, 1].map(v => `<button class="${v <= r ? 'f' : ''}" data-rate="${v}" aria-label="Оценить на ${v} из 5" title="${v} из 5">★</button>`).join('')}</span>`; },
+  bindStars(root) { $$('[data-rate]', root).forEach(b => { b.onclick = e => { e.stopPropagation(); Library.rate(b.closest('[data-stars]').dataset.stars, +b.dataset.rate); }; b.ondblclick = e => e.stopPropagation(); }); },
   rows(ts) {
-    return `<div role="table" aria-label="Список треков"><div class="row head" role="row"><span class="n">#</span><span>Название</span><span>Альбом</span><span>Добавлен</span><span>⏱</span><span></span></div>
+    return `<div role="table" aria-label="Список треков"><div class="row head" role="row"><span class="n">#</span><span>Название</span><span>Альбом</span><span>Оценка</span><span>Добавлен</span><span>⏱</span><span></span></div>
       ${ts.map((t, k) => `<div class="row" role="row" tabindex="0" data-row="${t.id}">
         <span class="n"><span>${k + 1}</span><button class="ib" data-rowplay aria-label="Воспроизвести ${esc(t.title)}" style="width:24px;height:24px">${I('play')}</button></span>
         <div class="ti"><div class="cv" style="${coverCSS(t)}"></div><div><b class="ell">${esc(t.title)}</b><span class="sm ell" style="display:block"><a href="#" data-go="artist" data-arg="${esc(t.artist)}" style="color:inherit" onclick="event.preventDefault()">${esc(t.artist)}</a></span></div></div>
         <span class="ell sm"><a href="#" data-go="album" data-arg="${esc(t.album + '\u0001' + t.artist)}" style="color:inherit" onclick="event.preventDefault()">${esc(t.album)}</a></span>
+        <span>${this.starsHTML(t)}</span>
         <span class="sm">${new Date(t.added).toLocaleDateString('ru')}</span>
         <span class="sm">${fmt(t.duration)}</span>
         <span class="mc"><button class="ib more" aria-label="Ещё действия: ${esc(t.title)}">${I('more')}</button></span></div>`).join('')}</div>`;
@@ -1056,7 +1288,7 @@ const UI = {
       row.onkeydown = e => e.key === 'Enter' && play();
       row.oncontextmenu = e => { e.preventDefault(); this.trackMenu(e, Library.get(row.dataset.row)); };
       $('.more', row).onclick = e => { e.stopPropagation(); this.trackMenu(e, Library.get(row.dataset.row)); }; });
-    this.markPlaying();
+    this.bindStars(box); this.markPlaying();
   },
   /* ---------- Статистика ---------- */
   statPeriod: 'month',
@@ -1136,14 +1368,19 @@ const UI = {
       <div class="line"><div><b>Тема</b></div><div class="chips"><button class="pill ${theme === 'dark' ? 'on' : ''}" data-theme-set="dark">Тёмная</button><button class="pill ${theme === 'light' ? 'on' : ''}" data-theme-set="light">Светлая</button></div></div>
       <div class="line"><b>Акцентный цвет</b><div class="chips">${accents.map(c => `<button class="sw ${c === acc ? 'on' : ''}" style="background:${c}" data-acc="${c}" aria-label="Акцент ${c}"></button>`).join('')}</div></div>
       <div class="line"><div><b>Кроссфейд</b><div class="muted sm">0 — gapless-переход</div></div><div style="display:flex;gap:8px;align-items:center;width:220px"><input type="range" class="xf" min="0" max="12" step="1" value="${Player.xfade}" aria-label="Кроссфейд, секунд"><span class="xfv">${Player.xfade} с</span></div></div>
+      <div class="line"><div><b>Склейка без пауз</b><div class="muted sm">Следующий трек загружается заранее и начинается встык. Внутри одного альбома кроссфейд не применяется — концертные альбомы и миксы звучат непрерывно.</div></div>
+        <button class="pill ${Player.gapless ? 'on' : ''}" id="gapT" role="switch" aria-checked="${Player.gapless}">${Player.gapless ? 'Вкл' : 'Выкл'}</button></div>
+      ${App.api ? `<div class="line"><div><b>MyTunes ${esc(App.version)}</b><div class="muted sm" id="updS">${esc(App.status)}</div></div><button class="pill" id="updC">Проверить обновления</button></div>` : ''}
       <div class="line" style="display:block"><b>Хранилище</b><p class="muted sm">Треки: ${Library.tracks.size} · ${fmtBytes(lib)}${est ? ` · занято ${fmtBytes(est.usage)} из ${fmtBytes(est.quota)}` : ''}</p>
         ${est ? `<div class="bar"><i style="width:${Math.min(100, est.usage / est.quota * 100).toFixed(2)}%"></i></div>` : ''}</div>
       <div class="line"><div><b>Медиатека в JSON</b><div class="muted sm">Метаданные и плейлисты (без аудиофайлов)</div></div><div class="chips"><button class="pill" id="exp">Экспорт</button><button class="pill" id="imp">Импорт</button></div></div>
-      <div class="line" style="display:block"><b>Горячие клавиши</b><p class="muted sm">Пробел — пауза · ←/→ — ±5 сек · Ctrl+←/→ — трек · ↑/↓ — громкость · M — mute · S — shuffle · R — repeat</p></div>
+      <div class="line" style="display:block"><b>Горячие клавиши</b><p class="muted sm">Пробел — пауза · ←/→ — ±5 сек · Ctrl+←/→ — трек · ↑/↓ — громкость · M — mute · S — shuffle · R — repeat · L — текст песни · 1–5 — оценка, 0 — снять</p></div>
       <div class="line"><b>Очистить медиатеку</b><button class="pill" id="wipe" style="background:#c0392b;color:#fff">Удалить всё</button></div>
     </div></div>`;
     $$('[data-theme-set]').forEach(b => b.onclick = () => { applyTheme(b.dataset.themeSet, null); this.render(); });
     $$('[data-acc]').forEach(b => b.onclick = () => { applyTheme(null, b.dataset.acc); this.render(); });
+    $('#gapT').onclick = () => { Player.gapless = !Player.gapless; LS.set('gapless', Player.gapless); this.render(); };
+    $('#updC') && ($('#updC').onclick = () => App.api.check());
     $('#exp').onclick = () => Library.exportJSON(); $('#imp').onclick = () => $('#jsonIn').click();
     $('#wipe').onclick = async () => { if (!confirm('Удалить все треки и плейлисты? Это нельзя отменить.')) return;
       Player.pause(); for (const id of [...Library.tracks.keys()]) await Library.remove(id); for (const p of [...Library.playlists]) await Library.removePl(p.id);
@@ -1169,13 +1406,15 @@ const UI = {
     const items = [
       ['Воспроизвести', () => { Queue.set([t.id]); Player.load(true); }],
       ['Играть следующим', () => Queue.playNext(t.id)],
-      ['Добавить в очередь', () => Queue.add(t.id)], '-',
+      ['Добавить в очередь', () => Queue.add(t.id)],
+      ['Радио на основе трека', () => { const ts = Rec.radio(t); Queue.set(ts.map(x => x.id)); Player.load(true); toast(`Радио «${t.title}»: ${ts.length} тр.`); }], '-',
+      [`Оценка: ${t.rating ? '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating) : 'нет'}…`, () => setTimeout(() => this.openMenu(e, [...[5, 4, 3, 2, 1].map(v => ['★'.repeat(v) + '☆'.repeat(5 - v), () => Library.rate(t.id, v)]), ...(t.rating ? ['-', ['Снять оценку', () => Library.rate(t.id, 0)]] : [])]), 0)],
       [Library.isLiked(t.id) ? 'Убрать из любимых' : 'Добавить в любимые', () => Library.toggleLike(t.id)],
       ['Новый плейлист с этим треком', async () => { const p = await Library.createPlaylist(undefined, [t.id]); toast(`Создан «${p.name}»`); }],
       ...Library.playlists.filter(p => p !== pl).map(p => [`Добавить в «${p.name}»`, async () => { if (p.tracks.includes(t.id)) return toast('Трек уже в плейлисте'); p.tracks.push(t.id); await Library.savePl(p); toast(`Добавлено в «${p.name}»`); }]),
       ...(pl ? [['Убрать из этого плейлиста', async () => { pl.tracks = pl.tracks.filter(x => x !== t.id); await Library.savePl(pl); }]] : []), '-',
       ['К исполнителю', () => this.go('artist', t.artist)], ['К альбому', () => this.go('album', t.album + '\u0001' + t.artist)],
-      ['Изменить сведения…', () => this.editTrack(t)],
+      ['Изменить сведения…', () => this.editTrack(t)], ['Текст песни…', () => this.editTrack(t, true)],
       ['Удалить трек', async () => { if (!confirm(`Удалить «${t.title}» из медиатеки?`)) return;
         if (Player.track?.id === t.id) { Player.pause(); Player.track = null; } await Library.remove(t.id); toast('Трек удалён'); this.refresh(); }],
     ];
@@ -1212,25 +1451,34 @@ const UI = {
     w.onkeydown = e => { if (e.key === 'Escape') close(); if (e.key === 'Enter' && e.target.tagName === 'INPUT') $('[data-ok]', w).click(); };
     setTimeout(() => $('input', w)?.focus(), 0); return w;
   },
-  editTrack(t) {
-    let newCover;
+  async editTrack(t, focusLyrics) {
+    let newCover; await Lyrics.ensure(t);
     const w = this.modal(`<h3>Изменение сведений</h3><div class="form">
       <div class="cv" id="eCv" role="button" tabindex="0" aria-label="Выбрать обложку" title="Выбрать обложку" style="${coverCSS(t)};cursor:pointer"></div>
       <div class="fld"><label class="sm">Название<input class="inp" id="eT" value="${esc(t.title)}"></label>
         <label class="sm">Исполнитель<input class="inp" id="eA" value="${esc(t.artist)}"></label>
         <label class="sm">Альбом<input class="inp" id="eAl" value="${esc(t.album)}"></label>
         <label class="sm">Год<input class="inp" id="eY" value="${esc(t.year)}" inputmode="numeric" maxlength="4"></label></div></div>
+      <label class="sm" style="display:block;margin-top:12px">Текст песни — обычный или LRC с метками [мм:сс.xx]
+        <textarea class="inp" id="eLy" rows="7" style="width:100%;resize:vertical;font:inherit;margin-top:4px" placeholder="[00:12.30] Первая строка…">${esc(t.lyrics || '')}</textarea></label>
       <p class="muted sm">${esc(t.fileName || '')} · ${fmtBytes(t.size || 0)}</p>
-      <div class="chips"><button class="pill" id="eRm">Убрать обложку</button></div>`,
+      <div class="chips"><button class="pill" id="eRm">Убрать обложку</button><button class="pill" id="eLrc">Загрузить .lrc</button><button class="pill" id="eNet">Найти текст в интернете</button></div>`,
       async d => {
         t.title = $('#eT', d).value.trim() || t.title; t.artist = $('#eA', d).value.trim() || 'Неизвестный исполнитель';
         t.album = $('#eAl', d).value.trim() || 'Без альбома'; t.year = $('#eY', d).value.trim();
         if (newCover !== undefined) { t.cover = newCover; dropCoverURL(t.id); }
-        await Library.update(t); toast('Сведения сохранены'); this.refresh(); if (Player.track?.id === t.id) Player.updateMediaSession();
+        t.lyrics = $('#eLy', d).value.replace(/\s+$/, '');
+        await Library.update(t); toast('Сведения сохранены'); this.refresh(); if (Player.track?.id === t.id) { Player.updateMediaSession(); this.renderLyrics(true); }
       });
     const pick = () => this.pickImage(f => { newCover = f; $('#eCv', w).style.backgroundImage = `url('${URL.createObjectURL(f)}')`; });
     $('#eCv', w).onclick = pick; $('#eCv', w).onkeydown = e => e.key === 'Enter' && (e.stopPropagation(), pick());
     $('#eRm', w).onclick = () => { newCover = null; $('#eCv', w).style.backgroundImage = gradientFor(t.title); };
+    $('#eLrc', w).onclick = () => { const i = $('#lrcIn'); i.onchange = async () => { const f = i.files[0]; i.value = ''; if (f) $('#eLy', w).value = await f.text(); }; i.click(); };
+    $('#eNet', w).onclick = async () => { const b = $('#eNet', w); b.disabled = true; b.textContent = 'Ищем…';
+      const tt = { ...t, title: $('#eT', w).value.trim() || t.title, artist: $('#eA', w).value.trim(), album: $('#eAl', w).value.trim() };
+      try { const x = await Lyrics.online(tt); if (x) { $('#eLy', w).value = x; b.textContent = 'Найдено'; } else { b.textContent = 'Не найдено'; b.disabled = false; } }
+      catch { toast('Нет связи с lrclib.net', 1); b.textContent = 'Найти текст в интернете'; b.disabled = false; } };
+    if (focusLyrics) setTimeout(() => { const ta = $('#eLy', w); ta.focus(); ta.scrollIntoView({ block: 'center' }); }, 50);
   },
 
   /* ---------- Плеер: синхронизация интерфейса ---------- */
@@ -1243,7 +1491,53 @@ const UI = {
     $$('.like').forEach(b => { b.innerHTML = I(liked ? 'heartF' : 'heart'); b.classList.toggle('on', !!liked); b.setAttribute('aria-label', liked ? 'Убрать из любимых' : 'Добавить в любимые'); b.disabled = !t; });
     document.title = t ? `${t.title} · ${t.artist}` : 'MyTunes';
     if (t) dominantColor(t).then(c => $('#full').style.setProperty('--hdr', c));
+    $('#fStars').innerHTML = t ? this.starsHTML(t) : ''; this.bindStars($('#fStars'));
+    if (this.lyrMode && (t?.id || null) !== this._lyrFor) this.renderLyrics();
     Player.updateMediaSession(); this.markPlaying(); this.renderQueue(); this.syncControls(); this.progress();
+  },
+  /* ---------- Текст песни ---------- */
+  lyrMode: LS.get('lyrMode', false), _lyr: null, _lyrI: -1, _lyrFor: undefined, _lyrUser: 0,
+  toggleLyrics(on, quiet) {
+    on = on ?? !this.lyrMode; this.lyrMode = on; LS.set('lyrMode', on);
+    $('#full').classList.toggle('lyr', on); $$('#fLyrB,#lyrBtn').forEach(b => { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    if (on && !quiet) this.renderLyrics(true);
+  },
+  async renderLyrics(force) {
+    const box = $('#lyr'), t = Player.track; if (!box || (!force && !this.lyrMode)) return;
+    this._lyrFor = t?.id || null; this._lyr = null; this._lyrI = -1; box.className = '';
+    if (!t) { box.innerHTML = '<div class="lyrE"><p>Ничего не играет</p></div>'; return; }
+    box.innerHTML = '<div class="lyrE"><p>Загрузка текста…</p></div>';
+    const raw = await Lyrics.ensure(t); if (Player.track !== t) return;
+    const L = Lyrics.parse(raw);
+    if (!L) {
+      box.innerHTML = `<div class="lyrE"><b>Для этого трека нет текста</b><p>MyTunes берёт текст из тегов файла или из .lrc с тем же именем, что и трек.</p>
+        <div class="chips" style="justify-content:center"><button class="pill" id="lyrNet">Найти в интернете</button><button class="pill" id="lyrAdd">Добавить вручную</button></div>
+        <p class="sm">Поиск идёт по открытой базе lrclib.net — туда отправляются только название, исполнитель и альбом.</p></div>`;
+      $('#lyrNet').onclick = async () => { const b = $('#lyrNet'); b.disabled = true; b.textContent = 'Ищем…';
+        try { const x = await Lyrics.online(t); if (!x) { b.textContent = 'Не найдено'; toast('Текст не найден', 1); return; }
+          t.lyrics = x; await Library.update(t); toast('Текст найден и сохранён'); if (Player.track === t) this.renderLyrics(true); }
+        catch { toast('Нет связи с lrclib.net', 1); b.disabled = false; b.textContent = 'Найти в интернете'; } };
+      $('#lyrAdd').onclick = () => this.editTrack(t, true); return;
+    }
+    this._lyr = L; box.classList.toggle('plain', !L.synced); const off = t.lyrOff || 0;
+    box.innerHTML = L.lines.map((l, k) => `<p data-li="${k}">${esc(l.text) || '♪'}</p>`).join('') + `<div class="lyrBar">${L.synced
+      ? `<span title="Если текст опережает или отстаёт">Сдвиг ${off > 0 ? '+' : ''}${off.toFixed(1).replace('.', ',')} с</span><button class="pill" data-off="-0.5" aria-label="Текст раньше на 0,5 с">−0,5</button><button class="pill" data-off="0.5" aria-label="Текст позже на 0,5 с">+0,5</button>`
+      : '<span>Текст без синхронизации</span>'}<button class="pill" id="lyrEdit">Изменить</button></div>`;
+    if (L.synced) $$('[data-li]', box).forEach(p => p.onclick = () => { Player.seek(L.lines[+p.dataset.li].t + (t.lyrOff || 0) + 0.01); if (Player.el.paused) Player.play(); this._lyrUser = 0; });
+    $$('[data-off]', box).forEach(b => b.onclick = async () => { t.lyrOff = Math.round(((t.lyrOff || 0) + +b.dataset.off) * 10) / 10; await Library.update(t); this.renderLyrics(true); });
+    $('#lyrEdit').onclick = () => this.editTrack(t, true);
+    box.onwheel = box.ontouchmove = () => this._lyrUser = Date.now();
+    box.scrollTop = 0; this.lyrTick(true);
+  },
+  /* подсветка текущей строки (вызывается каждый кадр, пока открыт «Сейчас играет») */
+  lyrTick(force) {
+    const L = this._lyr; if (!L || !L.synced || !this.lyrMode) return;
+    const now = Player.el.currentTime - (Player.track?.lyrOff || 0); let i = -1;
+    for (let k = 0; k < L.lines.length && L.lines[k].t <= now + 0.1; k++) i = k;
+    if (i === this._lyrI && !force) return; this._lyrI = i;
+    const box = $('#lyr'); $$('[data-li]', box).forEach((p, k) => { p.classList.toggle('on', k === i); p.classList.toggle('past', k < i); });
+    const cur = $(`[data-li="${Math.max(0, i)}"]`, box);
+    if (cur && Date.now() - this._lyrUser > 3500) box.scrollTo({ top: cur.offsetTop - box.clientHeight * 0.36, behavior: force || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   },
   syncControls() {
     const playing = !Player.el.paused;
@@ -1293,7 +1587,7 @@ const UI = {
     $$('[data-qrm]', box).forEach(b => b.onclick = e => { e.stopPropagation(); const k = +b.dataset.qrm; if (k === Queue.i) return toast('Нельзя убрать текущий трек');
       Queue.list.splice(k, 1); if (k < Queue.i) Queue.i--; if (!Queue.shuffle) Queue.orig = [...Queue.list]; Queue.save(); this.renderQueue(); });
   },
-  toggleFull(on) { const f = $('#full'); on = on ?? !f.classList.contains('open'); f.classList.toggle('open', on); if (on) $('#fClose').focus(); },
+  toggleFull(on) { const f = $('#full'); on = on ?? !f.classList.contains('open'); f.classList.toggle('open', on); if (on) { $('#fClose').focus(); if (this.lyrMode) this.renderLyrics(true); } },
 
   /* ---------- Drag & drop файлов и папок ---------- */
   bindDropZone() { /* зона подсвечивается глобальным обработчиком */ },
@@ -1332,6 +1626,8 @@ const UI = {
       else if (/^[mь]$/i.test(k)) Player.toggleMute();
       else if (/^[sы]$/i.test(k)) Queue.toggleShuffle();
       else if (/^[rк]$/i.test(k)) Queue.cycleRepeat();
+      else if (/^[lд]$/i.test(k)) { if (!$('#full').classList.contains('open')) { this.toggleLyrics(true); this.toggleFull(true); } else this.toggleLyrics(); }
+      else if (/^[0-5]$/.test(k) && !e.ctrlKey && !e.altKey && !e.metaKey && Player.track) Library.rate(Player.track.id, +k);
       else if (k === 'Escape') { this.closeMenu(); this.toggleFull(false); this.toggleQueue(false); }
     });
   },
@@ -1342,6 +1638,7 @@ const UI = {
     const draw = () => {
       requestAnimationFrame(draw);
       if (!$('#full').classList.contains('open')) return;
+      this.lyrTick();
       const w = c.width = c.clientWidth * devicePixelRatio, h = c.height = c.clientHeight * devicePixelRatio; x.clearRect(0, 0, w, h);
       const an = Player.analyser; if (!an) return; data = data || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(data);
       const n = 64, bw = w / n, ac = getComputedStyle(document.documentElement).getPropertyValue('--ac');
@@ -1350,6 +1647,43 @@ const UI = {
       x.globalAlpha = 1;
     };
     draw();
+  },
+};
+
+/* =====================================================================
+   App — возможности версии для Windows (preload.js → window.mtApp):
+   «Открыть с помощью MyTunes» и автообновление. В браузере не используется.
+   ===================================================================== */
+const App = {
+  api: window.mtApp || null, version: '', status: 'Обновления проверяются автоматически при запуске',
+  async init() {
+    const A = this.api; if (!A) return;
+    this.version = await A.version();
+    A.onOpenFiles(list => this.openFiles(list)); A.onUpdate(u => this.onUpdate(u));
+    const first = await A.ready(); if (first && first.length) this.openFiles(first);
+  },
+  /* файлы из проводника: уже известные берём из медиатеки, новые добавляем; затем играем по порядку */
+  async openFiles(list) {
+    const files = list.map(f => new File([f.data], f.name, { type: /\.lrc$/i.test(f.name) ? 'text/plain' : '' }));
+    const audio = files.filter(f => !/\.lrc$/i.test(f.name));
+    const find = f => Library.list().find(t => t.fileName === f.name && t.size === f.size);
+    const fresh = files.filter(f => /\.lrc$/i.test(f.name) || !find(f));
+    if (fresh.length) await Library.addFiles(fresh);
+    const ids = audio.map(f => find(f)?.id).filter(Boolean); if (!ids.length) return;
+    Queue.set(ids); await Player.load(true);
+  },
+  onUpdate(u) {
+    const S = { checking: 'Проверяем обновления…', none: 'Установлена последняя версия', available: `Найдена версия ${u.version}, загружаем…`,
+      downloading: `Загрузка обновления… ${Math.round(u.percent || 0)}%`, ready: `Версия ${u.version} загружена — установится при перезапуске`,
+      portable: `Доступна версия ${u.version} — скачайте её со страницы релиза`, error: 'Не удалось проверить обновления (нет интернета?)', dev: 'Обновления работают только в собранном приложении' };
+    this.status = S[u.state] || this.status; const s = $('#updS'); if (s) s.textContent = this.status;
+    if (u.state === 'ready' || u.state === 'portable') this.banner(u);
+  },
+  banner(u) {
+    $('#upd')?.remove(); const d = document.createElement('div'); d.id = 'upd'; d.setAttribute('role', 'status');
+    d.innerHTML = `<span>Доступна MyTunes <b>${esc(u.version)}</b></span>${u.state === 'ready' ? '<button class="btn" data-u="install">Перезапустить и обновить</button>' : '<button class="btn" data-u="open">Скачать</button>'}<button class="ib" data-u="x" aria-label="Напомнить позже" title="Позже">${I('x')}</button>`;
+    document.body.append(d);
+    d.onclick = e => { const b = e.target.closest('[data-u]'); if (!b) return; if (b.dataset.u === 'install') { Stats.flush(); this.api.install(); } else if (b.dataset.u === 'open') this.api.openUrl(u.url); d.remove(); };
   },
 };
 
@@ -1378,6 +1712,7 @@ function applyTheme(theme, accent) {
   // восстановление текущего трека и позиции (без автозапуска)
   if (Queue.current()) await Player.load(false, LS.get('pos', 0));
   UI.syncTrack();
+  App.init().catch(e => console.error(e));
 })();
 </script>
 </body>
