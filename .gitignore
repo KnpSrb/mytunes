@@ -4,3 +4,4 @@ dist/
 www/
 android/keystore.properties
 *.jks
+android/app/src/demo/assets/

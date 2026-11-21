@@ -69,7 +69,7 @@ npm run dist     # сборка установщика и portable .exe в dist/
 Сборка (нужны Android SDK и JDK 21):
 ```bash
 npm run android:sync   # копирует index.html в www/ и обновляет android/
-npm run android:apk    # android/app/build/outputs/apk/release/app-release.apk
+npm run android:apk    # apk/full/release/app-full-release.apk и apk/demo/release/app-demo-release.apk («MyTunes Demo»)
 npm run icons          # перерисовать иконки (build/icon.ico, mipmap-*) из scripts/icons.js
 ```
 Ключ подписи хранится вне репозитория: `%USERPROFILE%.mytunes-keyskeystore.properties` (или путь в `MYTUNES_KEYSTORE`). Обновления APK устанавливаются поверх только с тем же ключом — храните его копию.

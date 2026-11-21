@@ -26,6 +26,14 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Два варианта: full — обычный MyTunes, demo — «MyTunes Demo» с треками-пустышками.
+    // Ставятся рядом (разные applicationId); у демо своё название и index.html с включённым демо-режимом
+    // (src/demo/assets/public/index.html создаёт scripts/prepare-www.js).
+    flavorDimensions = ['edition']
+    productFlavors {
+        full { dimension 'edition'; manifestPlaceholders = [syncScheme: 'mytunes'] }
+        demo { dimension 'edition'; applicationIdSuffix '.demo'; versionNameSuffix '-demo'; manifestPlaceholders = [syncScheme: 'mytunes-demo'] }
+    }
     signingConfigs {
         release {
             if (ks.storeFile) {
