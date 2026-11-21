@@ -160,7 +160,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 .empty{text-align:center;padding:64px 24px;color:var(--tx2)}.empty svg{width:64px;height:64px;margin-bottom:12px}
 .empty h3{color:var(--tx);font-size:1.5rem}
 /* Полноэкранный «Сейчас играет» */
-#full{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;overflow:auto}
+#full{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;overflow:auto;overflow-x:hidden}
 #full.open{display:block}
 #full .bg{position:absolute;inset:0;background:linear-gradient(var(--hdr),var(--bg) 70%);z-index:-1}
 #full .wrap{max-width:1000px;margin:auto;padding:24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;min-height:100%}
@@ -197,7 +197,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
   .hdr{padding:48px 16px 16px;flex-direction:column;align-items:flex-start}.hdr .big{width:160px;height:160px}
   .sec{padding:0 16px 16px}.toolbar{padding:12px 16px}
   .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
-  #full .wrap{grid-template-columns:1fr;gap:16px}
+  #full .wrap{grid-template-columns:minmax(0,1fr);gap:16px;padding:16px 20px}#full .wrap>*{min-width:0} /* длинное название не растягивает плеер шире экрана */
+  #full #fTi{font-size:1.45rem}#full #fAr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#full .eq{overflow-x:auto}
   #full #fcv{max-width:340px;margin:auto}
   #full .ctrl .prog,#full .btns .ib{display:flex}
   #qp{left:0;right:0;top:0;bottom:0;width:auto;border-radius:0;z-index:45}
