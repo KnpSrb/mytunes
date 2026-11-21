@@ -1,7 +1,7 @@
 {
   "name": "mytunes",
   "productName": "MyTunes",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "MyTunes — локальный музыкальный плеер",
   "main": "main.js",
   "author": "MyTunes",
@@ -9,7 +9,10 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win",
-    "screenshots": "electron scripts/screenshots.js"
+    "screenshots": "electron scripts/screenshots.js",
+    "android:sync": "node scripts/prepare-www.js && npx cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleRelease",
+    "android:icons": "electron scripts/android-icons.js"
   },
   "build": {
     "appId": "app.mytunes.player",
@@ -17,7 +20,9 @@
     "files": [
       "main.js",
       "preload.js",
-      "index.html"
+      "index.html",
+      "!node_modules/@capacitor/**",
+      "!node_modules/@capgo/**"
     ],
     "directories": {
       "output": "dist"
@@ -75,6 +80,7 @@
     ]
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8"
   },
@@ -83,6 +89,10 @@
     "url": "https://github.com/KnpSrb/mytunes.git"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "@capgo/capacitor-media-session": "^8.1.11",
     "electron-updater": "^6.8.11"
   }
 }

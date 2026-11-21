@@ -3,6 +3,9 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const os = require('os');
+const crypto = require('crypto');
 
 // Откуда берутся обновления (публичные релизы на GitHub)
 const RELEASES = { owner: 'KnpSrb', repo: 'mytunes' };
@@ -76,6 +79,48 @@ function checkUpdates() {
   else checkPortable();
 }
 
+/* ---------- Перенос по Wi‑Fi ----------
+   HTTP-сервер в локальной сети. Каждый запрос должен содержать 6-значный код;
+   после 10 неверных попыток сервер выключается. Данные отдаёт и принимает страница (IndexedDB). */
+let share = null, ridSeq = 0;
+const waiting = new Map();
+const lanIPs = () => Object.values(os.networkInterfaces()).flat()
+  .filter(i => i && i.family === 'IPv4' && !i.internal && !i.address.startsWith('169.254.')).map(i => i.address);
+
+function stopShare() { if (share) { share.srv.close(); share.srv.closeAllConnections?.(); share = null; } }
+function startShare() {
+  if (share) return Promise.resolve({ ips: lanIPs(), port: share.port, code: share.code });
+  const code = String(crypto.randomInt(100000, 1000000));
+  const srv = http.createServer(async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    const u = new URL(req.url, 'http://local');
+    if (!u.pathname.startsWith('/mt/')) { res.writeHead(404); return res.end(); }
+    if (!share || u.searchParams.get('code') !== share.code) {
+      if (share && ++share.fails >= 10) { stopShare(); send({ state: 'share-locked' }); }
+      res.writeHead(403); return res.end('bad code');
+    }
+    const chunks = []; let size = 0;
+    for await (const c of req) { size += c.length; if (size > 2e9) { res.writeHead(413); return res.end(); } chunks.push(c); }
+    const rid = ++ridSeq;
+    const r = await new Promise(resolve => {
+      waiting.set(rid, resolve);
+      win.webContents.send('share-req', { rid, method: req.method, path: u.pathname, name: os.hostname(), body: size ? Buffer.concat(chunks) : null });
+      setTimeout(() => { if (waiting.delete(rid)) resolve({ status: 504 }); }, 300e3);
+    });
+    res.writeHead(r.status || 200, { 'Content-Type': r.type || 'application/octet-stream' });
+    res.end(r.data ? Buffer.from(r.data) : undefined);
+  });
+  srv.requestTimeout = 0;
+  return new Promise((resolve, reject) => {
+    const ok = () => { share = { srv, code, port: srv.address().port, fails: 0 }; resolve({ ips: lanIPs(), port: share.port, code }); };
+    srv.once('error', e => { if (e.code === 'EADDRINUSE') { srv.removeAllListeners('error'); srv.once('error', reject); srv.listen(0, '0.0.0.0', ok); } else reject(e); });
+    srv.listen(47800, '0.0.0.0', ok);
+  });
+}
+
 /* ---------- Окно ---------- */
 function createWindow() {
   win = new BrowserWindow({
@@ -119,6 +164,9 @@ else {
   ipcMain.handle('ready', () => { rendererReady = true; const p = pending; pending = []; return readFiles(p); });
   ipcMain.handle('update-check', () => checkUpdates());
   ipcMain.handle('update-install', () => { if (updater) updater.quitAndInstall(); });
+  ipcMain.handle('share-start', () => startShare());
+  ipcMain.handle('share-stop', () => stopShare());
+  ipcMain.on('share-res', (_e, rid, r) => { const f = waiting.get(rid); if (f) { waiting.delete(rid); f(r); } });
   ipcMain.handle('open-url', (_e, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); });
 
   app.whenReady().then(() => {

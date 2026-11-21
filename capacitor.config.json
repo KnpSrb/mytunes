@@ -1,0 +1,17 @@
+{
+  "appId": "app.mytunes.player",
+  "appName": "MyTunes",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "backgroundColor": "#121212"
+  },
+  "plugins": {
+    "MediaSession": {
+      "foregroundService": "duringPlayback"
+    }
+  }
+}
