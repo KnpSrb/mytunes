@@ -84,8 +84,10 @@ function checkUpdates() {
    после 10 неверных попыток сервер выключается. Данные отдаёт и принимает страница (IndexedDB). */
 let share = null, ridSeq = 0;
 const waiting = new Map();
+// адреса домашней сети (192.168.x, 10.x, 172.16–31.x) — первыми: телефон пробует их по порядку, VPN-адреса — в конце
 const lanIPs = () => Object.values(os.networkInterfaces()).flat()
-  .filter(i => i && i.family === 'IPv4' && !i.internal && !i.address.startsWith('169.254.')).map(i => i.address);
+  .filter(i => i && i.family === 'IPv4' && !i.internal && !i.address.startsWith('169.254.')).map(i => i.address)
+  .sort((a, b) => /^(192\.168|10|172\.(1[6-9]|2\d|3[01]))\./.test(b) - /^(192\.168|10|172\.(1[6-9]|2\d|3[01]))\./.test(a));
 
 function stopShare() { if (share) { share.srv.close(); share.srv.closeAllConnections?.(); share = null; } }
 function startShare() {

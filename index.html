@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>MyTunes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%231ED760%22%2F%3E%3Crect%20x%3D%225.95%22%20y%3D%229.6%22%20width%3D%222.2%22%20height%3D%225.2%22%20rx%3D%221.1%22%2F%3E%3Crect%20x%3D%229.25%22%20y%3D%226.2%22%20width%3D%222.2%22%20height%3D%2211.6%22%20rx%3D%221.1%22%2F%3E%3Crect%20x%3D%2212.55%22%20y%3D%228.1%22%20width%3D%222.2%22%20height%3D%227.8%22%20rx%3D%221.1%22%2F%3E%3Crect%20x%3D%2215.85%22%20y%3D%2210.1%22%20width%3D%222.2%22%20height%3D%223.8%22%20rx%3D%221.1%22%2F%3E%3C%2Fsvg%3E">
 <style>
 /* ============ Темы и токены ============ */
 :root{--bg:#121212;--p1:#181818;--p2:#282828;--p3:#3e3e3e;--tx:#fff;--tx2:#b3b3b3;--ac:#1DB954;--acTx:#000;--hdr:#3a3a3a;--r:8px;
@@ -97,7 +98,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 #qp{position:fixed;right:8px;top:8px;bottom:104px;width:340px;background:var(--p1);border-radius:var(--r);z-index:20;display:none;flex-direction:column;box-shadow:0 0 40px #000a}
 #qp.open{display:flex}#qp .hd{display:flex;justify-content:space-between;align-items:center;padding:16px}
 #ql{overflow:auto;flex:1;padding:0 8px 16px}
-.qi{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:6px;cursor:grab}
+.qi{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:6px;cursor:grab;position:relative}
+/* перетаскивание: строка едет за указателем, линия показывает место вставки */
+.grip{display:inline-grid;place-items:center;width:32px;height:32px;color:var(--tx2);cursor:grab;touch-action:none;flex:none;border-radius:50%}
+.grip svg{width:18px;height:18px;fill:currentColor}.grip:hover{color:var(--tx);background:#ffffff14}
+.sorting,.sorting *{cursor:grabbing!important;user-select:none!important}
+.dragging{position:relative;z-index:5;pointer-events:none;background:var(--p2)!important;box-shadow:0 8px 24px #0008;border-radius:6px;opacity:.95}
+.ins-b{box-shadow:inset 0 2px 0 var(--ac)}.ins-a{box-shadow:inset 0 -2px 0 var(--ac)}
+.row.re{grid-template-columns:32px minmax(0,4fr) minmax(0,3fr) 92px minmax(0,1.4fr) 60px 76px}
+.row .mc{display:flex;align-items:center;justify-content:flex-end}
+/* QR: код на компьютере и сканер на телефоне */
+.qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0}.qrbox svg{border-radius:8px;flex:none;width:168px;height:168px}
+#scan{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;padding:16px}
+#scan video{width:min(88vw,420px);aspect-ratio:1;object-fit:cover;border-radius:16px;background:#111}
+#scan .frame{position:absolute;width:min(60vw,280px);aspect-ratio:1;border:3px solid var(--ac);border-radius:16px;box-shadow:0 0 0 100vmax #0006;pointer-events:none}
 .qi:hover{background:var(--p2)}.qi.cur b{color:var(--ac)}.qi.drag{opacity:.4}.qi.over{box-shadow:0 -2px 0 var(--ac)}
 .qi .cv{width:40px;height:40px;border-radius:4px}
 /* Drop-зона */
@@ -160,7 +174,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
   #tabs{display:flex;justify-content:space-around;align-items:center;background:linear-gradient(transparent,var(--bg) 40%)}
   #tabs button{display:flex;flex-direction:column;align-items:center;font-size:.7rem;color:var(--tx2);gap:2px;padding:6px 12px}
   #tabs button.on{color:var(--tx)}
-  .row{grid-template-columns:minmax(0,1fr) 40px}.row>:not(.ti):not(.mc){display:none}
+  .row,.row.re{grid-template-columns:minmax(0,1fr) auto}.row>:not(.ti):not(.mc){display:none}
   .row .more{opacity:1}
   .hdr{padding:48px 16px 16px;flex-direction:column;align-items:flex-start}.hdr .big{width:160px;height:160px}
   .sec{padding:0 16px 16px}.toolbar{padding:12px 16px}
@@ -324,9 +338,51 @@ const LS = { get(k, d) { try { const v = localStorage.getItem('mt.' + k); return
 const AUDIO_EXT = ['mp3','wav','ogg','oga','flac','m4a','aac'];
 const NATIVE = !!window.Capacitor?.isNativePlatform?.(); // приложение для Android (Capacitor)
 
+/* Смена порядка перетаскиванием. Мышью можно тянуть за любое место строки, пальцем — за ручку ⠿
+   (иначе список не прокручивался бы). onMove(from, to) получает позиции до и после перемещения. */
+function sortable(box, sel, onMove) {
+  box.addEventListener('pointerdown', e => {
+    const item = e.target.closest(sel), grip = e.target.closest('.grip');
+    if (!item || e.button > 0 || (e.pointerType === 'touch' && !grip)) return;
+    if (!grip && e.target.closest('button,a,input,select,.stars')) return;
+    const items = $$(sel, box), from = items.indexOf(item), y0 = e.clientY, scroller = box.closest('#main,#ql,.qbody') || box;
+    let on = false, to = from, y = y0, mark = null, timer = null;
+    const sTop = () => scroller.scrollTop, s0 = sTop();
+    const place = () => {
+      item.style.transform = `translateY(${y - y0 + sTop() - s0}px)`;
+      mark?.classList.remove('ins-a', 'ins-b'); mark = null; to = from;
+      let t = document.elementFromPoint(e.clientX, y)?.closest(sel);
+      if (!items.includes(t)) { // выше первой строки — в начало, ниже последней — в конец
+        const a = items[0].getBoundingClientRect(), b = items[items.length - 1].getBoundingClientRect();
+        t = y < a.top + 4 ? items[0] : y > b.bottom - 4 ? items[items.length - 1] : null; }
+      if (!t || t === item) return;
+      const r = t.getBoundingClientRect(), after = y > r.top + r.height / 2, k = items.indexOf(t);
+      to = k + (after ? 1 : 0); if (to > from) to--;
+      mark = t; t.classList.add(after ? 'ins-a' : 'ins-b');
+    };
+    const move = ev => {
+      y = ev.clientY;
+      if (!on) { if (Math.abs(y - y0) < 6) return; on = true; item.classList.add('dragging'); document.body.classList.add('sorting'); getSelection()?.removeAllRanges();
+        // у края списка — прокрутка
+        timer = setInterval(() => { const r = scroller.getBoundingClientRect(), d = y < r.top + 60 ? -12 : y > r.bottom - 90 ? 12 : 0; if (d) { scroller.scrollTop += d; place(); } }, 30); }
+      ev.preventDefault(); place();
+    };
+    const up = ev => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      clearInterval(timer); if (!on) return;
+      item.classList.remove('dragging'); item.style.transform = ''; document.body.classList.remove('sorting'); mark?.classList.remove('ins-a', 'ins-b');
+      const eat = c => { c.stopPropagation(); c.preventDefault(); }; window.addEventListener('click', eat, true); setTimeout(() => window.removeEventListener('click', eat, true), 60); // клик после перетаскивания не запускает трек
+      if (ev.type === 'pointerup' && to !== from) onMove(from, to);
+    };
+    window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
+}
+
 /* Inline SVG-иконки */
 const ICONS = {
-  logo:'<svg viewBox="0 0 24 24" style="width:28px;height:28px"><circle cx="12" cy="12" r="11"/><path fill="#000" d="M10 7v7.3A2.5 2.5 0 1 0 11.5 16.6V9.5h4V7z"/></svg>',
+  logo:'<svg viewBox="0 0 24 24" style="width:28px;height:28px"><circle cx="12" cy="12" r="11"/><g fill="#000"><rect x="5.95" y="9.6" width="2.2" height="5.2" rx="1.1"/><rect x="9.25" y="6.2" width="2.2" height="11.6" rx="1.1"/><rect x="12.55" y="8.1" width="2.2" height="7.8" rx="1.1"/><rect x="15.85" y="10.1" width="2.2" height="3.8" rx="1.1"/></g></svg>',
+  grip:'<svg viewBox="0 0 24 24"><path d="M9 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm9-13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>',
+  qr:'<svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2z"/></svg>',
   home:'<svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg>',
   search:'<svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 0 1 6.3 12.9l5.4 5.4-1.4 1.4-5.4-5.4A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>',
   lib:'<svg viewBox="0 0 24 24"><path d="M4 3h2v18H4zm5 0h2v18H9zm5.3.6 1.9-.6 5.6 17.4-1.9.6z"/></svg>',
@@ -769,7 +825,16 @@ const Library = {
    Queue — порядок воспроизведения, shuffle, «играть следующим»
    ===================================================================== */
 const Queue = {
-  orig: [], list: [], i: -1, shuffle: LS.get('shuffle', false), repeat: LS.get('repeat', 'off'), // off|all|one
+  orig: [], list: [], i: -1, shuffle: LS.get('shuffle', false),
+  // off|all|one. По умолчанию «весь список»: доиграв до конца, плейлист начинается заново (бесконечно)
+  repeat: LS.get('loop14') ? LS.get('repeat', 'all') : (LS.set('loop14', 1), LS.set('repeat', 'all'), 'all'),
+  /* Переход на трек n. Если список закончился и пошёл по кругу, при перемешивании порядок меняется заново */
+  advance(n) {
+    const wrap = n === 0 && this.i === this.list.length - 1 && this.list.length > 1;
+    this.i = n;
+    if (wrap) { if (this.shuffle) this.doShuffle(); toast('Плейлист начался сначала'); UI.renderQueue(); }
+    this.save();
+  },
   set(ids, start = 0) {
     this.orig = [...ids]; this.list = [...ids]; this.i = start;
     if (this.shuffle) this.doShuffle(); this.save();
@@ -1024,7 +1089,7 @@ const Player = {
     const t = this.track, ct = this.el.currentTime;
     if (manual && t && !this.pendingStart && ct > 1 && ct < Math.min(30, (this.el.duration || 60) * 0.5)) { t.skips = (t.skips || 0) + 1; Storage.put('tracks', t).catch(() => {}); }
     const n = Queue.peek(manual); if (n < 0) { this.pause(); this.el.currentTime = 0; return; }
-    Queue.i = n; this.load(true);
+    Queue.advance(n); this.load(true);
   },
   prev() {
     if (this.el.currentTime > 3 || Queue.i <= 0) { if (Queue.i <= 0 && Queue.repeat === 'all' && this.el.currentTime <= 3) { Queue.i = Queue.list.length - 1; return this.load(true); } return this.seek(0); }
@@ -1067,7 +1132,7 @@ const Player = {
     g0.cancelScheduledValues(now); g0.setValueAtTime(1, now); g0.linearRampToValueAtTime(0, now + dur);
     g1.cancelScheduledValues(now); g1.setValueAtTime(0, now); g1.linearRampToValueAtTime(1, now + dur);
     this.els[nk].play().catch(() => {});
-    this.cur = nk; Queue.i = n; this.track = Library.get(id); this.started(this.track);
+    this.cur = nk; Queue.advance(n); this.track = Library.get(id); this.started(this.track);
     setTimeout(() => { old.pause(); this.fading = false; }, dur * 1000 + 300);
   },
   setVolume(v) { this.volume = Math.max(0, Math.min(1, v)); if (this.volume > 0) this.muted = false; this.applyVolume(); },
@@ -1191,11 +1256,11 @@ const UI = {
       home: () => this.home(all),
       search: () => this.searchView(),
       library: () => this.trackPage({ title: 'Все треки', kind: 'Медиатека', tracks: all, sortable: true, cover: `background-image:linear-gradient(135deg,var(--ac),#0b3d20)` }),
-      liked: () => this.trackPage({ title: 'Любимые треки', kind: 'Плейлист', tracks: Library.liked.map(id => Library.get(id)).filter(Boolean), cover: 'background-image:linear-gradient(135deg,#450af5,#8e8ee5)', color: '#5038a0' }),
+      liked: () => this.trackPage({ title: 'Любимые треки', kind: 'Плейлист', tracks: Library.liked.map(id => Library.get(id)).filter(Boolean), reorder: ids => { Library.liked = [...ids, ...Library.liked.filter(x => !ids.includes(x))]; LS.set('liked', Library.liked); }, cover: 'background-image:linear-gradient(135deg,#450af5,#8e8ee5)', color: '#5038a0' }),
       recent: () => this.trackPage({ title: 'Недавно прослушанные', kind: 'Авто-плейлист', tracks: Library.recent.map(id => Library.get(id)).filter(Boolean), cover: 'background-image:linear-gradient(135deg,#1e3264,#e8115b)', color: '#6a1b3f' }),
       added: () => this.trackPage({ title: 'Недавно добавленные', kind: 'Авто-плейлист', tracks: [...all].sort((x, y) => y.added - x.added).slice(0, 50), cover: `background-image:${gradientFor('added')}` }),
       playlist: () => { const p = Library.pl(a); if (!p) return this.go('home');
-        return this.trackPage({ title: p.name, kind: 'Плейлист', tracks: p.tracks.map(id => Library.get(id)).filter(Boolean), cover: this.plCover(p), pl: p, coverTrack: Library.get(p.tracks[0]) }); },
+        return this.trackPage({ title: p.name, kind: 'Плейлист', tracks: p.tracks.map(id => Library.get(id)).filter(Boolean), cover: this.plCover(p), pl: p, reorder: ids => { p.tracks = [...ids, ...p.tracks.filter(x => !ids.includes(x))]; return Library.savePl(p); }, coverTrack: Library.get(p.tracks[0]) }); },
       artists: () => this.cardsPage('Исполнители', [...Library.artists()].map(([n, ts]) => ({ title: n, sub: `${ts.length} тр.`, t: ts.find(x => x.cover) || ts[0], go: 'artist', arg: n, round: true, ids: ts.map(x => x.id) }))),
       albums: () => this.cardsPage('Альбомы', [...Library.albums()].map(([k, ts]) => ({ title: ts[0].album, sub: ts[0].artist, t: ts.find(x => x.cover) || ts[0], go: 'album', arg: k, ids: ts.map(x => x.id) }))),
       artist: () => { const ts = Library.artists().get(a) || []; return this.trackPage({ title: a, kind: 'Исполнитель', tracks: ts, coverTrack: ts.find(x => x.cover), round: true, sortable: true }); },
@@ -1316,21 +1381,30 @@ const UI = {
       r.addEventListener('contextmenu', e => { e.preventDefault(); this.trackMenu(e, Library.get(r.dataset.row), o.pl); });
       const mb = $('.more', r); mb && (mb.onclick = e => { e.stopPropagation(); this.trackMenu(e, Library.get(r.dataset.row), o.pl); });
     });
+    // свой порядок: перетаскивание строк (Alt+↑/↓ с клавиатуры)
+    const reorder = async (a, b) => { const ids = ts.map(t => t.id), [x] = ids.splice(a, 1); ids.splice(b, 0, x); await o.reorder(ids); this.render();
+      const r = $(`#reList [data-row="${x}"]`); r && r.focus({ preventScroll: true }); };
+    if (o.reorder && $('#reList')) {
+      sortable($('#reList'), '.row:not(.head)', reorder);
+      $$('#reList [data-row]').forEach((r, k) => r.addEventListener('keydown', e => { if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); e.stopPropagation();
+        const to = k + (e.key === 'ArrowUp' ? -1 : 1); if (to >= 0 && to < ts.length) reorder(k, to); } }));
+    }
     this.bindStars(m); this.bindDropZone(); this.markPlaying();
   },
   starsHTML(t) { const r = t.rating || 0;
     return `<span class="stars ${r ? 'has' : ''}" data-stars="${t.id}" role="group" aria-label="Оценка: ${r} из 5">${[5, 4, 3, 2, 1].map(v => `<button class="${v <= r ? 'f' : ''}" data-rate="${v}" aria-label="Оценить на ${v} из 5" title="${v} из 5">★</button>`).join('')}</span>`; },
   bindStars(root) { $$('[data-rate]', root).forEach(b => { b.onclick = e => { e.stopPropagation(); Library.rate(b.closest('[data-stars]').dataset.stars, +b.dataset.rate); }; b.ondblclick = e => e.stopPropagation(); }); },
-  rows(ts) {
-    return `<div role="table" aria-label="Список треков"><div class="row head" role="row"><span class="n">#</span><span>Название</span><span>Альбом</span><span>Оценка</span><span>Добавлен</span><span>⏱</span><span></span></div>
-      ${ts.map((t, k) => `<div class="row" role="row" tabindex="0" data-row="${t.id}">
+  rows(ts, o = {}) {
+    const re = !!o.reorder ? 're' : '';
+    return `<div role="table" aria-label="Список треков" ${re ? 'id="reList"' : ''}><div class="row head ${re}" role="row"><span class="n">#</span><span>Название</span><span>Альбом</span><span>Оценка</span><span>Добавлен</span><span>⏱</span><span></span></div>
+      ${ts.map((t, k) => `<div class="row ${re}" role="row" tabindex="0" data-row="${t.id}">
         <span class="n"><span>${k + 1}</span><button class="ib" data-rowplay aria-label="Воспроизвести ${esc(t.title)}" style="width:24px;height:24px">${I('play')}</button></span>
         <div class="ti"><div class="cv" style="${coverCSS(t)}"></div><div><b class="ell">${esc(t.title)}</b><span class="sm ell" style="display:block"><a href="#" data-go="artist" data-arg="${esc(t.artist)}" style="color:inherit" onclick="event.preventDefault()">${esc(t.artist)}</a></span></div></div>
         <span class="ell sm"><a href="#" data-go="album" data-arg="${esc(t.album + '\u0001' + t.artist)}" style="color:inherit" onclick="event.preventDefault()">${esc(t.album)}</a></span>
         <span>${this.starsHTML(t)}</span>
         <span class="sm">${new Date(t.added).toLocaleDateString('ru')}</span>
         <span class="sm">${fmt(t.duration)}</span>
-        <span class="mc"><button class="ib more" aria-label="Ещё действия: ${esc(t.title)}">${I('more')}</button></span></div>`).join('')}</div>`;
+        <span class="mc">${re ? `<span class="grip" title="Перетащите, чтобы изменить порядок" aria-hidden="true">${I('grip')}</span>` : ''}<button class="ib more" aria-label="Ещё действия: ${esc(t.title)}">${I('more')}</button></span></div>`).join('')}</div>`;
   },
   markPlaying() { const id = Player.track?.id; $$('[data-row]').forEach(r => r.classList.toggle('playing', r.dataset.row === id)); },
   searchView() {
@@ -1448,10 +1522,11 @@ const UI = {
         ${est ? `<div class="bar"><i style="width:${Math.min(100, est.usage / est.quota * 100).toFixed(2)}%"></i></div>` : ''}</div>
       <div class="line" style="display:block"><b>Резервная копия всей медиатеки</b><p class="muted sm">Один .zip-файл: треки, обложки, плейлисты, любимые, оценки, тексты и история прослушиваний. Восстановить можно на любом устройстве — уже имеющиеся треки не дублируются.${NATIVE ? ' Сохранить копию можно в MyTunes на компьютере или перенести всё по Wi‑Fi.' : ''}</p>
         <div class="chips">${NATIVE ? '' : '<button class="pill" id="bkSave">Сохранить копию</button>'}<button class="pill" id="bkLoad">Восстановить из копии</button></div></div>
-      ${App.api ? `<div class="line" style="display:block"><b>Перенос по Wi‑Fi — раздать с этого компьютера</b><p class="muted sm">Включите, затем на телефоне откройте MyTunes → Настройки → «Перенос по Wi‑Fi» и введите адрес и код. Устройства должны быть в одной сети.</p><div id="shareBox"></div></div>` : ''}
-      <div class="line" style="display:block"><b>Перенос по Wi‑Fi${App.api ? ' — подключиться к другому компьютеру' : ''}</b><p class="muted sm">На компьютере с MyTunes: Настройки → «Перенос по Wi‑Fi» → «Включить перенос». Введите показанные там адрес и код.</p>
+      ${App.api ? `<div class="line" style="display:block"><b>Перенос по Wi‑Fi — раздать с этого компьютера</b><p class="muted sm">Включите, затем на телефоне откройте MyTunes → Настройки → «Перенос по Wi‑Fi» и отсканируйте QR-код (или введите адрес и код). Устройства должны быть в одной сети.</p><div id="shareBox"></div></div>` : ''}
+      <div class="line" style="display:block"><b>Перенос по Wi‑Fi${App.api ? ' — подключиться к другому компьютеру' : ''}</b><p class="muted sm">На компьютере с MyTunes: Настройки → «Перенос по Wi‑Fi» → «Включить перенос». ${NATIVE ? 'Отсканируйте QR-код с экрана компьютера — синхронизация начнётся сама. Или введите адрес и код вручную.' : 'Введите показанные там адрес и код.'}</p>
+        ${NATIVE ? `<button class="btn" id="tfScan" style="margin:4px 0 12px;display:inline-flex;gap:8px;align-items:center">${I('qr')}Сканировать QR-код</button>` : ''}
         <div class="chips" style="align-items:center"><input class="inp" id="tfHost" placeholder="192.168.1.5:47800" value="${esc(Transfer.peer)}" style="width:200px" inputmode="url" autocomplete="off" aria-label="Адрес компьютера"><input class="inp" id="tfCode" placeholder="Код" style="width:110px" value="${esc(Transfer.code)}" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Код"></div>
-        <div class="chips" style="margin-top:8px"><button class="pill" id="tfPull">Скачать всё оттуда</button><button class="pill" id="tfPush">Отправить всё туда</button></div>
+        <div class="chips" style="margin-top:8px"><button class="pill on" id="tfSync" title="Скачать недостающее оттуда и отправить туда своё">Синхронизировать</button><button class="pill" id="tfPull">Только скачать оттуда</button><button class="pill" id="tfPush">Только отправить туда</button></div>
         <div id="tfProg" class="muted sm" style="margin-top:8px" aria-live="polite"></div><div class="tfbar" id="tfBar" hidden><i></i></div></div>
       ${NATIVE ? `<div class="line"><div><b>MyTunes ${esc(Native.version)}</b><div class="muted sm">Новые версии проверяются при запуске</div></div><button class="pill" id="updN">Проверить обновления</button></div>` : ''}
       ${NATIVE ? '' : `<div class="line"><div><b>Медиатека в JSON</b><div class="muted sm">Только метаданные и плейлисты (без аудиофайлов)</div></div><div class="chips"><button class="pill" id="exp">Экспорт</button><button class="pill" id="imp">Импорт</button></div></div>`}
@@ -1466,7 +1541,8 @@ const UI = {
     $('#exp') && ($('#exp').onclick = () => Library.exportJSON()); $('#imp') && ($('#imp').onclick = () => $('#jsonIn').click());
     $('#bkSave') && ($('#bkSave').onclick = () => Transfer.exportBackup());
     $('#bkLoad').onclick = () => { const i = $('#bkIn'); i.onchange = () => { const f = i.files[0]; i.value = ''; if (f) Library.addFiles([f]); }; i.click(); };
-    $('#tfPull').onclick = () => Transfer.run('pull'); $('#tfPush').onclick = () => Transfer.run('push');
+    $('#tfPull').onclick = () => Transfer.run('pull'); $('#tfPush').onclick = () => Transfer.run('push'); $('#tfSync').onclick = () => Transfer.run('sync');
+    $('#tfScan') && ($('#tfScan').onclick = () => Transfer.scan());
     $('#updN') && ($('#updN').onclick = () => Native.checkUpdate(true));
     Transfer.renderShare(); if (Transfer.busy) Transfer.paint();
     $('#wipe').onclick = async () => { if (!confirm('Удалить все треки и плейлисты? Это нельзя отменить.')) return;
@@ -1655,20 +1731,15 @@ const UI = {
     const box = $('#ql'); if (!$('#qp').classList.contains('open')) return;
     if (!Queue.list.length) { box.innerHTML = `<div class="empty" style="padding:32px 8px"><p>Очередь пуста. Добавьте треки через меню «···».</p></div>`; return; }
     const item = (id, k) => { const t = Library.get(id); if (!t) return '';
-      return `<div class="qi ${k === Queue.i ? 'cur' : ''}" draggable="true" data-qk="${k}" tabindex="0" aria-label="${esc(t.title)}, позиция ${k + 1}. Alt+стрелки — переместить">
-        <div class="cv" style="${coverCSS(t)}"></div><div style="min-width:0;flex:1"><b class="ell" style="display:block;font-weight:500">${esc(t.title)}</b><span class="muted sm">${esc(t.artist)}</span></div>
+      return `<div class="qi ${k === Queue.i ? 'cur' : ''}" data-qk="${k}" tabindex="0" aria-label="${esc(t.title)}, позиция ${k + 1}. Alt+стрелки — переместить">
+        <span class="grip" aria-hidden="true">${I('grip')}</span><div class="cv" style="${coverCSS(t)}"></div><div style="min-width:0;flex:1"><b class="ell" style="display:block;font-weight:500">${esc(t.title)}</b><span class="muted sm">${esc(t.artist)}</span></div>
         <button class="ib" data-qrm="${k}" aria-label="Убрать из очереди">${I('x')}</button></div>`; };
     const cur = Queue.i >= 0 ? `<h4 class="muted" style="margin:8px">Сейчас играет</h4>${item(Queue.list[Queue.i], Queue.i)}` : '';
     const next = Queue.list.map((id, k) => k > Queue.i ? item(id, k) : '').join('');
     box.innerHTML = cur + (next ? `<h4 class="muted" style="margin:16px 8px 8px">Далее</h4>${next}` : '');
-    let from = null;
+    if (!box.sorted) { box.sorted = 1; sortable(box, '.qi', (a, b) => { const q = $$('.qi', box).map(x => +x.dataset.qk); Queue.move(q[a], q[b]); }); }
     $$('.qi', box).forEach(el => {
       const k = +el.dataset.qk;
-      el.ondragstart = e => { from = k; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-queue', k); };
-      el.ondragend = () => el.classList.remove('drag');
-      el.ondragover = e => { if (from === null) return; e.preventDefault(); e.stopPropagation(); el.classList.add('over'); };
-      el.ondragleave = () => el.classList.remove('over');
-      el.ondrop = e => { e.preventDefault(); e.stopPropagation(); el.classList.remove('over'); if (from !== null && from !== k) Queue.move(from, from < k ? k - 1 : k); from = null; };
       el.ondblclick = () => { Queue.i = k; Player.load(true); };
       el.onkeydown = e => { if (e.key === 'Enter') { Queue.i = k; Player.load(true); }
         if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); const to = k + (e.key === 'ArrowUp' ? -1 : 1); if (to >= 0 && to < Queue.list.length) { Queue.move(k, to); $(`[data-qk="${to}"]`)?.focus(); } } };
@@ -1747,6 +1818,77 @@ const UI = {
      другое устройство скачивает оттуда недостающие треки или отправляет свои.
    Треки сопоставляются по id или по имени файла и размеру — дубликатов не будет.
    ===================================================================== */
+/* QR-код (байтовый режим, уровень коррекции M, версии 1–10) → матрица и SVG */
+const QR = (() => {
+  const ECC = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26], BLK = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  const raw = v => { let r = (16 * v + 128) * v + 64; if (v >= 2) { const n = (v / 7 | 0) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; } return r; };
+  const cap = v => (raw(v) >> 3) - ECC[v] * BLK[v];
+  const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+  const divisor = d => { const r = Array(d).fill(0); r[d - 1] = 1; let root = 1;
+    for (let i = 0; i < d; i++) { for (let j = 0; j < d; j++) { r[j] = mul(r[j], root); if (j + 1 < d) r[j] ^= r[j + 1]; } root = mul(root, 2); } return r; };
+  const rsRem = (data, div) => { const r = div.map(() => 0); for (const b of data) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => r[i] ^= mul(c, f)); } return r; };
+  const bit = (x, i) => ((x >>> i) & 1) !== 0;
+  const MASKS = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => ((x / 3 | 0) + (y / 2 | 0)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0, (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+
+  function matrix(text) {
+    const bytes = [...new TextEncoder().encode(text)];
+    let v = 1; while (v <= 10 && 12 + (v < 10 ? 0 : 8) + bytes.length * 8 > cap(v) * 8) v++;
+    if (v > 10) throw new Error('QR: слишком длинный текст');
+    // поток бит: режим 0100, длина, данные, терминатор, выравнивание, заполнители
+    const bits = [], put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+    const capBits = cap(v) * 8; put(0, Math.min(4, capBits - bits.length)); put(0, (8 - bits.length % 8) % 8);
+    for (let p = 0xEC; bits.length < capBits; p ^= 0xEC ^ 0x11) put(p, 8);
+    const data = []; for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(''), 2));
+    // блоки с кодами Рида — Соломона и чередование
+    const nb = BLK[v], ec = ECC[v], rc = raw(v) >> 3, nShort = nb - rc % nb, sLen = rc / nb | 0, div = divisor(ec), blocks = [];
+    for (let i = 0, k = 0; i < nb; i++) { const dat = data.slice(k, k + sLen - ec + (i < nShort ? 0 : 1)); k += dat.length;
+      const e = rsRem(dat, div); if (i < nShort) dat.push(0); blocks.push(dat.concat(e)); }
+    const cw = []; for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== sLen - ec || j >= nShort) cw.push(b[i]); });
+    // служебные элементы
+    const S = v * 4 + 17, M = Array.from({ length: S }, () => Array(S).fill(false)), F = Array.from({ length: S }, () => Array(S).fill(false));
+    const set = (x, y, d) => { M[y][x] = d; F[y][x] = true; };
+    for (let i = 0; i < S; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    for (const [cx, cy] of [[3, 3], [S - 4, 3], [3, S - 4]]) for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const x = cx + dx, y = cy + dy, d = Math.max(Math.abs(dx), Math.abs(dy)); if (x >= 0 && x < S && y >= 0 && y < S) set(x, y, d !== 2 && d !== 4); }
+    if (v > 1) { const n = (v / 7 | 0) + 2, step = Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2, pos = [6];
+      for (let p = S - 7; pos.length < n; p -= step) pos.splice(1, 0, p);
+      pos.forEach((a, i) => pos.forEach((b, j) => { if ((i === 0 && j === 0) || (i === 0 && j === n - 1) || (i === n - 1 && j === 0)) return;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); })); }
+    const fmt = mask => { const d = mask; let r = d; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537); const b = (d << 10 | r) ^ 0x5412; // уровень M = 00
+      for (let i = 0; i <= 5; i++) set(8, i, bit(b, i)); set(8, 7, bit(b, 6)); set(8, 8, bit(b, 7)); set(7, 8, bit(b, 8));
+      for (let i = 9; i < 15; i++) set(14 - i, 8, bit(b, i)); for (let i = 0; i < 8; i++) set(S - 1 - i, 8, bit(b, i));
+      for (let i = 8; i < 15; i++) set(8, S - 15 + i, bit(b, i)); set(8, S - 8, true); };
+    fmt(0);
+    if (v >= 7) { let r = v; for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25); const b = v << 12 | r;
+      for (let i = 0; i < 18; i++) { const a = S - 11 + i % 3, c = i / 3 | 0; set(a, c, bit(b, i)); set(c, a, bit(b, i)); } }
+    // данные змейкой снизу вверх
+    let k = 0;
+    for (let right = S - 1; right >= 1; right -= 2) { if (right === 6) right = 5;
+      for (let vert = 0; vert < S; vert++) for (let j = 0; j < 2; j++) { const x = right - j, y = ((right + 1) & 2) === 0 ? S - 1 - vert : vert;
+        if (!F[y][x] && k < cw.length * 8) { M[y][x] = bit(cw[k >>> 3], 7 - (k & 7)); k++; } } }
+    // маска с наименьшим штрафом (серии, квадраты 2×2, баланс)
+    const apply = m => { for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (!F[y][x] && MASKS[m](x, y)) M[y][x] = !M[y][x]; };
+    const penalty = () => { let p = 0, dark = 0;
+      for (let a = 0; a < S; a++) for (const row of [true, false]) { let run = 1;
+        for (let b = 1; b <= S; b++) { const c = b < S && (row ? M[a][b] === M[a][b - 1] : M[b][a] === M[b - 1][a]); if (c) run++; else { if (run >= 5) p += run - 2; run = 1; } } }
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { if (M[y][x]) dark++;
+        if (x && y && M[y][x] === M[y - 1][x] && M[y][x] === M[y][x - 1] && M[y][x] === M[y - 1][x - 1]) p += 3; }
+      return p + (Math.ceil(Math.abs(dark * 20 - S * S * 10) / (S * S)) - 1) * 10; };
+    let best = 0, bp = Infinity;
+    for (let m = 0; m < 8; m++) { apply(m); fmt(m); const p = penalty(); if (p < bp) { bp = p; best = m; } apply(m); }
+    apply(best); fmt(best);
+    return M;
+  }
+  function svg(text, px = 200) {
+    const M = matrix(text), S = M.length, q = 4; let d = '';
+    M.forEach((row, y) => row.forEach((on, x) => { if (on) d += `M${x + q} ${y + q}h1v1h-1z`; }));
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S + q * 2} ${S + q * 2}" width="${px}" height="${px}" shape-rendering="crispEdges" role="img"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  }
+  return { matrix, svg };
+})();
+
 const Transfer = {
   peer: LS.get('peer', ''), host: '', code: '', busy: false, cancel: false, share: null, stats: { sent: 0, got: 0 }, inPl: {}, msg: '', pct: -1,
   manifest() {
@@ -1836,17 +1978,21 @@ const Transfer = {
   },
   async run(dir) {
     if (this.busy) { this.cancel = true; return; }
-    let host = ($('#tfHost')?.value || '').trim().replace(/^https?:\/\//, '').replace(/\/.*$/, ''), code = ($('#tfCode')?.value || '').trim();
-    if (!host || !code) return toast('Введите адрес и код с другого устройства', 1);
-    if (!/:\d+$/.test(host)) host += ':47800';
-    this.host = host; this.code = code; this.peer = host; LS.set('peer', host);
-    const id = dir === 'pull' ? '#tfPull' : '#tfPush', label = $(id).textContent;
+    // в поле может быть несколько адресов через запятую (из QR-кода) — берём первый, который отвечает
+    const hosts = ($('#tfHost')?.value || '').split(/[,\s]+/).map(h => h.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(Boolean).map(h => /:\d+$/.test(h) ? h : h + ':47800');
+    const code = ($('#tfCode')?.value || '').trim();
+    if (!hosts.length || !code) return toast('Введите адрес и код с другого устройства', 1);
+    let host = hosts[0]; this.code = code; this.peer = hosts.join(','); // если связи не будет — адрес останется в поле для повтора
+    const id = { pull: '#tfPull', push: '#tfPush', sync: '#tfSync' }[dir], label = $(id).textContent;
     this.busy = true; this.cancel = false; $(id).textContent = 'Остановить'; this.set('Подключение…');
     try {
       navigator.storage?.persist?.().catch(() => {});
-      const info = await (await this.req('info', {}, 8000)).json();
+      let info = null, err = null;
+      for (const h of hosts) { this.host = h; try { info = await (await this.req('info', {}, hosts.length > 1 ? 4000 : 8000)).json(); host = h; break; } catch (e) { err = e; if (e.message === 'code') break; } }
+      if (!info) throw err;
+      this.peer = host; LS.set('peer', host); const inp = $('#tfHost'); if (inp) inp.value = host;
       this.set(`Подключено к «${info.name || host}» · там ${info.tracks} тр.`);
-      const res = dir === 'pull' ? await this.pull() : await this.push();
+      const res = dir === 'pull' ? await this.pull() : dir === 'push' ? await this.push() : await this.sync();
       this.set(res); toast(res); UI.refresh();
     } catch (e) {
       console.error(e);
@@ -1856,6 +2002,56 @@ const Transfer = {
     } finally { this.busy = false; const b = $(id); if (b) b.textContent = label; }
   },
   check() { if (this.cancel) throw new Error('cancel'); },
+  /* В обе стороны: сначала скачиваем недостающее, потом отправляем своё */
+  async sync() {
+    const before = Library.tracks.size; await this.pull(); const got = Library.tracks.size - before;
+    const r = await this.push(), sent = +(r.match(/отправлено (\d+)/) || [0, 0])[1];
+    return `Синхронизировано · скачано треков: ${got}, отправлено: ${sent}. Плейлисты, оценки и история объединены`;
+  },
+  /* ---------- QR-код: mytunes://sync?h=адрес:порт[,адрес:порт]&c=код ---------- */
+  link(s) { return `mytunes://sync?h=${s.ips.map(ip => ip + ':' + s.port).join(',')}&c=${s.code}`; },
+  parse(text) { const m = /^mytunes:\/\/sync\?(.+)$/i.exec(String(text).trim()); if (!m) return null;
+    const q = new URLSearchParams(m[1]), h = q.get('h'), c = q.get('c'); return h && /^\d{6}$/.test(c || '') ? { h, c } : null; },
+  /* по ссылке (QR из камеры телефона или из сканера MyTunes) — заполнить поля и сразу синхронизировать */
+  fromLink(text) {
+    const p = this.parse(text); if (!p) return false;
+    this.code = p.c; UI.go('settings');
+    setTimeout(() => { const h = $('#tfHost'), c = $('#tfCode'); if (!h || !c) return; h.value = p.h; c.value = p.c;
+      $('#tfHost').closest('.line').scrollIntoView({ block: 'center' }); if (!this.busy) this.run('sync'); }, 250);
+    return true;
+  },
+  async scan() {
+    if (!navigator.mediaDevices?.getUserMedia) return toast('Камера недоступна', 1);
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false }); }
+    catch (e) { console.warn(e); return toast('Нет доступа к камере. Разрешите его в настройках Android для MyTunes', 1); }
+    const w = document.createElement('div'); w.id = 'scan'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-label', 'Сканирование QR-кода');
+    w.innerHTML = `<div style="position:relative;display:grid;place-items:center;overflow:hidden;border-radius:16px"><video playsinline muted></video><div class="frame"></div></div>
+      <b>Наведите камеру на QR-код на экране компьютера</b><span class="muted sm" id="scanS">MyTunes на компьютере → Настройки → «Перенос по Wi‑Fi» → «Включить перенос»</span>
+      <button class="pill" data-x>Отмена</button>`;
+    document.body.append(w); w.classList.add('modal');
+    const v = $('video', w); v.srcObject = stream; await v.play().catch(() => {});
+    let done = false;
+    const close = () => { done = true; stream.getTracks().forEach(t => t.stop()); w.remove(); };
+    $('[data-x]', w).onclick = close;
+    const det = 'BarcodeDetector' in window ? await BarcodeDetector.getSupportedFormats?.().then(f => f.includes('qr_code') ? new BarcodeDetector({ formats: ['qr_code'] }) : null).catch(() => null) : null;
+    if (!det && !window.jsQR) await new Promise(r => { const sc = document.createElement('script'); sc.src = 'jsqr.js'; sc.onload = sc.onerror = r; document.head.append(sc); });
+    if (!det && !window.jsQR) { close(); return toast('Сканер недоступен — введите адрес и код вручную', 1); }
+    const c = document.createElement('canvas'), g = c.getContext('2d', { willReadFrequently: true });
+    while (!done) {
+      await new Promise(r => setTimeout(r, 120)); if (done || !v.videoWidth) continue;
+      let text = null;
+      try {
+        if (det) text = (await det.detect(v))[0]?.rawValue;
+        else { const S = Math.min(v.videoWidth, v.videoHeight), k = Math.min(1, 720 / S); c.width = c.height = S * k | 0;
+          g.drawImage(v, (v.videoWidth - S) / 2, (v.videoHeight - S) / 2, S, S, 0, 0, c.width, c.height);
+          text = jsQR(g.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'dontInvert' })?.data; }
+      } catch (e) { console.warn(e); }
+      if (!text) continue;
+      if (this.parse(text)) { navigator.vibrate?.(40); close(); this.fromLink(text); return; }
+      $('#scanS', w).textContent = 'Это не QR-код MyTunes. Откройте перенос по Wi‑Fi на компьютере';
+    }
+  },
   async pull() {
     const man = await (await this.req('manifest')).json(), need = man.tracks.filter(m => !this.findLocal(m));
     const total = need.reduce((a, m) => a + (m.size || 0), 0) || 1; let done = 0, n = 0;
@@ -1919,7 +2115,7 @@ const Transfer = {
   },
   renderShare() {
     const box = $('#shareBox'); if (!box) return; const s = this.share;
-    box.innerHTML = s ? `<div class="tiles" style="margin:8px 0"><div class="tile"><b style="font-size:1.25rem">${s.ips.length ? s.ips.map(ip => esc(ip + ':' + s.port)).join('<br>') : 'нет сети'}</b><span>адрес этого компьютера</span></div>
+    box.innerHTML = s ? `${s.ips.length ? `<div class="qrbox">${QR.svg(this.link(s), 168)}<p class="sm" style="max-width:300px;margin:0">На телефоне: MyTunes → Настройки → «Сканировать QR-код». Медиатеки синхронизируются в обе стороны.</p></div>` : ''}<div class="tiles" style="margin:8px 0;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"><div class="tile"><b style="font-size:1.05rem;overflow-wrap:anywhere">${s.ips.length ? s.ips.map(ip => esc(ip + ':' + s.port)).join('<br>') : 'нет сети'}</b><span>адрес этого компьютера</span></div>
         <div class="tile"><b style="font-size:1.6rem;letter-spacing:.12em">${esc(s.code)}</b><span>код</span></div></div>
         <p class="muted sm">Отдано треков: ${this.stats.sent} · получено: ${this.stats.got}. Если Windows спросит про доступ к сети — разрешите его для частных сетей.</p><button class="pill" id="shT">Выключить перенос</button>`
       : '<button class="pill" id="shT">Включить перенос</button>';
@@ -1941,6 +2137,9 @@ const Native = {
       seekbackward: () => Player.seek(Player.el.currentTime - 10), seekforward: () => Player.seek(Player.el.currentTime + 10), seekto: d => d.seekTime != null && Player.seek(d.seekTime) };
     for (const [action, f] of Object.entries(h)) try { this.ms.setActionHandler({ action }, f); } catch (e) { console.warn(e); }
     this.app.addListener('backButton', () => this.back());
+    // QR-код, отсканированный системной камерой, открывает MyTunes ссылкой mytunes://sync?...
+    this.app.addListener('appUrlOpen', e => Transfer.fromLink(e.url));
+    this.app.getLaunchUrl?.().then(r => r?.url && setTimeout(() => Transfer.fromLink(r.url), 500)).catch(() => {});
     navigator.storage?.persist?.().catch(() => {});
     this.app.getInfo().then(i => { this.version = i.version; setTimeout(() => this.checkUpdate(), 5000); }).catch(() => {});
   },
