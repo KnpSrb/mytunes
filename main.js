@@ -15,6 +15,10 @@ let win, rendererReady = false, pending = [], flushTimer = null;
 
 // Отдельный профиль для разработки и тестов (не трогает настоящую медиатеку)
 if (process.env.MYTUNES_PROFILE) app.setPath('userData', process.env.MYTUNES_PROFILE);
+// Демо-версия: сборка MyTunes-Demo (поле mytunesDemo в package.json) или запуск с ключом --demo.
+// Своя папка данных — настоящая медиатека не видна и не меняется; можно запускать рядом с обычной MyTunes.
+const DEMO = !!require('./package.json').mytunesDemo || process.argv.includes('--demo');
+if (DEMO && !process.env.MYTUNES_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), 'MyTunes-Demo'));
 
 /* ---------- «Открыть с помощью MyTunes» ---------- */
 // Аудиофайлы из аргументов командной строки (двойной клик в проводнике передаёт путь к файлу)
@@ -49,6 +53,7 @@ const newer = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').m
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 
 function setupUpdater() {
+  if (DEMO) return;
   // Установленная версия обновляется сама (electron-updater); переносная — только сообщает о новой версии
   if (!app.isPackaged || isPortable) return;
   try { updater = require('electron-updater').autoUpdater; } catch (e) { console.error(e); return; }
@@ -74,6 +79,7 @@ async function checkPortable() {
 }
 
 function checkUpdates() {
+  if (DEMO) return send({ state: 'none' }); // демо не обновляется
   if (!app.isPackaged) return send({ state: 'dev' });
   if (updater) updater.checkForUpdates().catch(() => send({ state: 'error' }));
   else checkPortable();
@@ -90,8 +96,9 @@ const lanIPs = () => Object.values(os.networkInterfaces()).flat()
   .sort((a, b) => /^(192\.168|10|172\.(1[6-9]|2\d|3[01]))\./.test(b) - /^(192\.168|10|172\.(1[6-9]|2\d|3[01]))\./.test(a));
 
 function stopShare() { if (share) { share.srv.close(); share.srv.closeAllConnections?.(); share = null; } }
-function startShare() {
-  if (share) return Promise.resolve({ ips: lanIPs(), port: share.port, code: share.code });
+function startShare(opt = {}) {
+  const token = /^[\w-]{16,64}$/.test(opt.token || '') ? opt.token : null; // постоянный ключ привязанных телефонов
+  if (share) { share.token = token; return Promise.resolve({ ips: lanIPs(), port: share.port, code: share.code }); }
   const code = String(crypto.randomInt(100000, 1000000));
   const srv = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -100,7 +107,8 @@ function startShare() {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     const u = new URL(req.url, 'http://local');
     if (!u.pathname.startsWith('/mt/')) { res.writeHead(404); return res.end(); }
-    if (!share || u.searchParams.get('code') !== share.code) {
+    const key = u.searchParams.get('code');
+    if (!share || !(key === share.code || (share.token && key === share.token))) {
       if (share && ++share.fails >= 10) { stopShare(); send({ state: 'share-locked' }); }
       res.writeHead(403); return res.end('bad code');
     }
@@ -117,9 +125,9 @@ function startShare() {
   });
   srv.requestTimeout = 0;
   return new Promise((resolve, reject) => {
-    const ok = () => { share = { srv, code, port: srv.address().port, fails: 0 }; resolve({ ips: lanIPs(), port: share.port, code }); };
+    const ok = () => { share = { srv, code, token, port: srv.address().port, fails: 0 }; resolve({ ips: lanIPs(), port: share.port, code }); };
     srv.once('error', e => { if (e.code === 'EADDRINUSE') { srv.removeAllListeners('error'); srv.once('error', reject); srv.listen(0, '0.0.0.0', ok); } else reject(e); });
-    srv.listen(47800, '0.0.0.0', ok);
+    srv.listen(+opt.port > 0 && +opt.port < 65536 ? +opt.port : 47800, '0.0.0.0', ok); // тот же порт, что в прошлый раз — адрес в QR остаётся верным
   });
 }
 
@@ -134,7 +142,7 @@ function createWindow() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.js') },
   });
   Menu.setApplicationMenu(null);
-  win.loadFile(path.join(__dirname, 'index.html'));
+  win.loadFile(path.join(__dirname, 'index.html'), DEMO ? { query: { demo: '1' } } : {});
   win.once('ready-to-show', () => win.show());
 
   // Внешние ссылки открываем в браузере, а не внутри приложения
@@ -166,7 +174,7 @@ else {
   ipcMain.handle('ready', () => { rendererReady = true; const p = pending; pending = []; return readFiles(p); });
   ipcMain.handle('update-check', () => checkUpdates());
   ipcMain.handle('update-install', () => { if (updater) updater.quitAndInstall(); });
-  ipcMain.handle('share-start', () => startShare());
+  ipcMain.handle('share-start', (_e, opt) => startShare(opt || {}));
   ipcMain.handle('share-stop', () => stopShare());
   ipcMain.on('share-res', (_e, rid, r) => { const f = waiting.get(rid); if (f) { waiting.delete(rid); f(r); } });
   ipcMain.handle('open-url', (_e, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); });

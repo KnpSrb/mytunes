@@ -1,7 +1,7 @@
 {
   "name": "mytunes",
   "productName": "MyTunes",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "MyTunes — локальный музыкальный плеер",
   "main": "main.js",
   "author": "MyTunes",
@@ -12,7 +12,8 @@
     "screenshots": "electron scripts/screenshots.js",
     "android:sync": "node scripts/prepare-www.js && npx cap sync android",
     "android:apk": "npm run android:sync && cd android && gradlew.bat assembleRelease",
-    "icons": "electron scripts/icons.js"
+    "icons": "electron scripts/icons.js",
+    "dist:demo": "electron-builder --win portable -c.extraMetadata.mytunesDemo=true -c.portable.artifactName=MyTunes-Demo-${version}.exe -c.directories.output=dist-demo --publish never"
   },
   "build": {
     "appId": "app.mytunes.player",
