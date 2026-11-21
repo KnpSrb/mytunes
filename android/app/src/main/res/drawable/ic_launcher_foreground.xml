@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Знак MyTunes: зелёный круг с эквалайзером (тот же рисунок, что scripts/icons.js) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <group android:translateX="24" android:translateY="24" android:scaleX="2.5" android:scaleY="2.5">
+    <path android:fillColor="#1ED760" android:pathData="M12,1a11,11 0 1,0 0.001,0z"/>
+    <path android:fillColor="#000000" android:pathData="M5.95,10.70a1.1,1.1 0,0 1,2.2 0v3.00a1.1,1.1 0,0 1,-2.2 0zM9.25,7.30a1.1,1.1 0,0 1,2.2 0v9.40a1.1,1.1 0,0 1,-2.2 0zM12.55,9.20a1.1,1.1 0,0 1,2.2 0v5.60a1.1,1.1 0,0 1,-2.2 0zM15.85,11.20a1.1,1.1 0,0 1,2.2 0v1.60a1.1,1.1 0,0 1,-2.2 0z"/>
+  </group>
+</vector>

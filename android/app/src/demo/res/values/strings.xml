@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- Демо-версия: своё название на рабочем столе -->
+<resources>
+    <string name="app_name">MyTunes Demo</string>
+    <string name="title_activity_main">MyTunes Demo</string>
+</resources>

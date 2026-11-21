@@ -69,6 +69,14 @@ const SEED = `(async () => {
   for (let k = 0; k < 900; k++) { const t = pick(), d = new Date(y0 + Math.random() * (Date.now() - y0)); d.setHours([8, 13, 19, 21, 22, 23][k % 6], Math.random() * 60);
     if (d.getTime() < Date.now()) Stats.log.push({ i: t.id, ti: t.title, a: t.artist, al: t.album, t: d.getTime(), s: Math.round(t.duration * (0.6 + Math.random() * 0.4)) }); }
   Stats.log.sort((a, b) => a.t - b.t); Stats.save();
+  // оценки и синхронизированный текст для демо-трека
+  [['Midnight Drive', 5], ['Northern Echo', 5], ['Coffee & Rain', 4], ['Wildfire', 4], ['Afterglow', 3]].forEach(([n, r]) => Library.get(id(n)).rating = r);
+  const md = Library.get(id('Midnight Drive'));
+  md.lyrics = ['Neon on the water, engine humming low', 'Every light is turning green wherever we go', 'Windows down, the city breathing in the dark',
+    'Your hand out in the wind, a radio heart', 'Midnight drive, we never wanted it to end', 'Take the long way home and start it all again',
+    'Midnight drive, the skyline burning bright', 'Nothing in the world but you and me tonight', 'Mirrors full of stars, the road a silver line', 'Hold the moment, hold it, one more time']
+    .map((l, k) => '[' + String(Math.floor((60 + k * 4.5) / 60)).padStart(2, '0') + ':' + ((60 + k * 4.5) % 60).toFixed(2).padStart(5, '0') + ']' + l).join(String.fromCharCode(10));
+  for (const t of Library.list()) await Library.update(t);
   UI.refresh(); return true;
 })()`;
 
@@ -86,8 +94,11 @@ app.whenReady().then(async () => {
   await js(`UI.go('playlist', Library.playlists[0].id)`); await shot('playlist.png', 1400);
   await js(`UI.go('album', 'City Lights\\u0001Neon Harbor'); UI.toggleQueue(true)`); await shot('queue.png', 1400);
   await js(`UI.toggleQueue(false); UI.go('search'); const i=document.querySelector('#sq'); i.value='neon'; UI.q='neon'; UI.renderResults()`); await shot('search.png');
-  await js(`UI.toggleFull(true); document.querySelector('#full details').open = true`); await shot('now-playing.png', 1500);
-  await js(`UI.toggleFull(false); applyTheme('light', '#1E90FF'); UI.go('liked')`); await shot('light-theme.png', 1400);
+  await js(`UI.toggleLyrics(false); UI.toggleFull(true); document.querySelector('#full details').open = true`); await shot('now-playing.png', 1500);
+  await js(`document.querySelector('#full details').open = false; Player.seek(73); UI.toggleLyrics(true)`); await shot('lyrics.png', 2200);
+  await js(`UI.toggleLyrics(false); UI.toggleFull(false); UI.go('home'); document.querySelector('#main h2').scrollIntoView()`); await shot('recommendations.png', 1400);
+  await js(`UI.go('smart', 'mix')`); await shot('smart-mix.png', 1400);
+  await js(`applyTheme('light', '#1E90FF'); UI.go('liked')`); await shot('light-theme.png', 1400);
   await js(`applyTheme('dark', '#1DB954'); UI.statPeriod = String(new Date().getFullYear()); UI.go('stats')`); await shot('stats.png', 1400);
   await js(`UI.go('wrapped', String(new Date().getFullYear())); document.querySelectorAll('.ws')[2].scrollIntoView()`); await shot('wrapped.png', 1400);
   await js(`UI.go('home')`);
