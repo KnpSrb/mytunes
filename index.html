@@ -99,6 +99,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 #qp.open{display:flex}#qp .hd{display:flex;justify-content:space-between;align-items:center;padding:16px}
 #ql{overflow:auto;flex:1;padding:0 8px 16px}
 .qi{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:6px;cursor:grab;position:relative}
+/* заставка */
+#intro{position:fixed;inset:0;z-index:200;background:#121212;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;transition:opacity .5s ease,visibility .5s;overflow:hidden}
+#intro.out{opacity:0;visibility:hidden}#intro.out .ilogo{transform:scale(1.25)}
+.iglow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,#1ed76038 0%,#1ed76010 40%,transparent 68%);animation:iglow 2.6s ease-in-out infinite;pointer-events:none}
+.ilogo{width:146px;height:146px;position:relative;transition:transform .5s ease;animation:ipop .7s cubic-bezier(.2,1.4,.4,1) both;filter:drop-shadow(0 10px 40px #1ed76055)}
+.ilogo circle{fill:#1ED760}.ilogo rect{fill:#000;transform-box:fill-box;transform-origin:center;animation:ibar .8s ease-in-out infinite alternate}
+.ilogo rect:nth-child(2){animation-delay:-.45s;animation-duration:.7s}.ilogo rect:nth-child(3){animation-delay:-.2s;animation-duration:.9s}.ilogo rect:nth-child(4){animation-delay:-.6s;animation-duration:.65s}
+.iword{position:relative;font:800 2.2rem/1 Inter,system-ui,"Segoe UI",Roboto,sans-serif;letter-spacing:.01em;color:transparent;
+  background:linear-gradient(100deg,#6b6b6b 0%,#6b6b6b 42%,#fff 50%,#6b6b6b 58%,#6b6b6b 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;
+  animation:ishine 2.2s linear .3s infinite,irise .6s ease-out .15s both}
+@keyframes ibar{from{transform:scaleY(.4)}to{transform:scaleY(1.12)}}
+@keyframes ishine{from{background-position:130% 0}to{background-position:-130% 0}}
+@keyframes irise{from{opacity:0;transform:translateY(12px)}}
+@keyframes ipop{from{transform:scale(.6);opacity:0}}
+@keyframes iglow{50%{transform:scale(1.15);opacity:.7}}
+@media (prefers-reduced-motion:reduce){#intro *{animation:none!important}}
 /* перетаскивание: строка едет за указателем, линия показывает место вставки */
 .grip{display:inline-grid;place-items:center;width:32px;height:32px;color:var(--tx2);cursor:grab;touch-action:none;flex:none;border-radius:50%}
 .grip svg{width:18px;height:18px;fill:currentColor}.grip:hover{color:var(--tx);background:#ffffff14}
@@ -233,6 +249,8 @@ html.native #full,html.native #qp{padding-top:env(safe-area-inset-top);padding-b
 </style>
 </head>
 <body>
+<!-- Заставка: логотип с «живым» эквалайзером и бегущий блик по названию -->
+<div id="intro" aria-hidden="true"><div class="iglow"></div><svg class="ilogo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"/><g><rect x="5.95" y="9.6" width="2.2" height="5.2" rx="1.1"/><rect x="9.25" y="6.2" width="2.2" height="11.6" rx="1.1"/><rect x="12.55" y="8.1" width="2.2" height="7.8" rx="1.1"/><rect x="15.85" y="10.1" width="2.2" height="3.8" rx="1.1"/></g></svg><div class="iword">MyTunes</div></div>
 <div id="app">
   <aside id="side" aria-label="Боковая панель">
     <nav class="box top" aria-label="Основная навигация">
@@ -1028,6 +1046,7 @@ const plural = (n, a, b, c) => { n = Math.abs(Math.round(n)) % 100; const k = n 
 const EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const Player = {
   els: [new Audio(), new Audio()], cur: 0, urls: [null, null], ctx: null, gains: [], filters: [], master: null, analyser: null,
+  lite: false, mix: [1, 0], fadeTimer: null, // lite — без Web Audio (телефон без эквалайзера), mix — доли громкости двух <audio>
   track: null, fading: false, pre: null, preloading: false, gapTimer: null, pendingStart: null, gapless: LS.get('gapless', true), volume: LS.get('volume', 0.8), muted: LS.get('muted', false), xfade: LS.get('xfade', 0),
   eq: LS.get('eq', EQ_BANDS.map(() => 0)),
   get el() { return this.els[this.cur]; },
@@ -1046,8 +1065,13 @@ const Player = {
   /* Граф Web Audio создаётся по первому жесту пользователя (политика автозапуска) */
   graph() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    // На телефоне без эквалайзера звук идёт напрямую через плеер Android: у него большой буфер,
+    // и музыка не заикается, когда телефон занят (прокрутка, другие приложения). Web Audio включается с эквалайзером.
+    if (NATIVE && this.eq.every(x => !x)) { this.lite = true; return; }
+    this.lite = false;
     try {
-      const C = window.AudioContext || window.webkitAudioContext; this.ctx = new C();
+      // latencyHint 'playback' — крупный аудиобуфер: для плеера задержка не важна, важна плавность
+      const C = window.AudioContext || window.webkitAudioContext; this.ctx = new C({ latencyHint: 'playback' });
       this.master = this.ctx.createGain(); this.analyser = this.ctx.createAnalyser(); this.analyser.fftSize = 256;
       this.filters = EQ_BANDS.map((f, k) => { const b = this.ctx.createBiquadFilter();
         b.type = k === 0 ? 'lowshelf' : k === EQ_BANDS.length - 1 ? 'highshelf' : 'peaking'; b.frequency.value = f; b.Q.value = 1.1; b.gain.value = this.eq[k]; return b; });
@@ -1069,6 +1093,7 @@ const Player = {
     if (!t) { this.track = null; UI.syncTrack(); return; }
     this.fading = false; this.pre = null; clearInterval(this.gapTimer); this.gapTimer = null; this.els[1 - this.cur].pause();
     if (this.gains.length) { const n = this.ctx.currentTime; this.gains.forEach((g, k) => { g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(k === this.cur ? 1 : 0, n); }); }
+    else { clearInterval(this.fadeTimer); this.mix = this.els.map((_, k) => k === this.cur ? 1 : 0); this.liteVol(); }
     try { await this.loadInto(this.cur, id); } catch { toast('Файл трека не найден в хранилище', 1); return; }
     this.track = t; if (pos) this.el.currentTime = pos;
     // восстановленный при запуске трек не считается прослушанным, пока его не включат
@@ -1109,7 +1134,7 @@ const Player = {
      поэтому старт мгновенный. Без кроссфейда момент переключения ловится таймером с шагом 4 мс,
      а не по timeupdate (он срабатывает лишь раз в ~250 мс) — так треки идут без паузы. */
   async checkFade() {
-    const a = this.el; if (this.fading || !this.gains.length || !a.duration || a.paused || Queue.repeat === 'one') return;
+    const a = this.el; if (this.fading || (!this.gains.length && !this.lite) || !a.duration || a.paused || Queue.repeat === 'one') return;
     const left = a.duration - a.currentTime, n = Queue.peek(false); if (n < 0) return;
     const id = Queue.list[n], nt = Library.get(id); if (!nt) return;
     const xf = Math.min(this.xfFor(this.track, nt), a.duration / 3);
@@ -1127,10 +1152,15 @@ const Player = {
     }, 4);
   },
   switchTo(n, id, dur) {
-    const nk = 1 - this.cur, old = this.el, now = this.ctx.currentTime; this.fading = true; this.pre = null;
-    const g0 = this.gains[this.cur].gain, g1 = this.gains[nk].gain;
-    g0.cancelScheduledValues(now); g0.setValueAtTime(1, now); g0.linearRampToValueAtTime(0, now + dur);
-    g1.cancelScheduledValues(now); g1.setValueAtTime(0, now); g1.linearRampToValueAtTime(1, now + dur);
+    const nk = 1 - this.cur, ok = this.cur, old = this.el; this.fading = true; this.pre = null;
+    if (this.gains.length) { const now = this.ctx.currentTime, g0 = this.gains[ok].gain, g1 = this.gains[nk].gain;
+      g0.cancelScheduledValues(now); g0.setValueAtTime(1, now); g0.linearRampToValueAtTime(0, now + dur);
+      g1.cancelScheduledValues(now); g1.setValueAtTime(0, now); g1.linearRampToValueAtTime(1, now + dur); }
+    else { // без Web Audio кроссфейд — громкостью самих <audio>
+      clearInterval(this.fadeTimer);
+      if (dur < 0.1) { this.mix[ok] = 0; this.mix[nk] = 1; this.liteVol(); }
+      else { const t0 = performance.now(); this.mix[nk] = 0; this.liteVol();
+        this.fadeTimer = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / (dur * 1000)); this.mix[ok] = 1 - p; this.mix[nk] = p; this.liteVol(); if (p >= 1) clearInterval(this.fadeTimer); }, 50); } }
     this.els[nk].play().catch(() => {});
     this.cur = nk; Queue.advance(n); this.track = Library.get(id); this.started(this.track);
     setTimeout(() => { old.pause(); this.fading = false; }, dur * 1000 + 300);
@@ -1139,10 +1169,12 @@ const Player = {
   toggleMute() { this.muted = !this.muted; this.applyVolume(); },
   applyVolume() {
     const v = this.muted ? 0 : this.volume * this.volume; // квадратичная кривая — естественнее на слух
-    if (this.master) this.master.gain.value = v; else this.els.forEach(a => a.volume = v);
+    if (this.master) this.master.gain.value = v; else this.liteVol();
     LS.set('volume', this.volume); LS.set('muted', this.muted); UI.syncVolume?.();
   },
-  setEq(k, db) { this.eq[k] = db; if (this.filters[k]) this.filters[k].gain.value = db; LS.set('eq', this.eq); },
+  setEq(k, db) { this.eq[k] = db; if (this.filters[k]) this.filters[k].gain.value = db; LS.set('eq', this.eq);
+    if (this.lite && db) { this.lite = false; clearInterval(this.fadeTimer); this.graph(); } }, // эквалайзер на телефоне включает Web Audio
+  liteVol() { const v = this.muted ? 0 : this.volume * this.volume; this.els.forEach((a, k) => a.volume = Math.max(0, Math.min(1, v * this.mix[k]))); },
   mediaSession() {
     if (!('mediaSession' in navigator)) return; const ms = navigator.mediaSession;
     const h = { play: () => this.play(), pause: () => this.pause(), previoustrack: () => this.prev(), nexttrack: () => this.next(),
@@ -1799,7 +1831,7 @@ const UI = {
       requestAnimationFrame(draw);
       if (!$('#full').classList.contains('open')) return;
       this.lyrTick();
-      const w = c.width = c.clientWidth * devicePixelRatio, h = c.height = c.clientHeight * devicePixelRatio; x.clearRect(0, 0, w, h);
+      const w = c.clientWidth * devicePixelRatio | 0, h = c.clientHeight * devicePixelRatio | 0; if (c.width !== w) c.width = w; if (c.height !== h) c.height = h; x.clearRect(0, 0, w, h);
       const an = Player.analyser; if (!an) return; data = data || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(data);
       const n = 64, bw = w / n, ac = getComputedStyle(document.documentElement).getPropertyValue('--ac');
       for (let i = 0; i < n; i++) { const v = data[Math.floor(i * data.length * 0.8 / n)] / 255, bh = Math.max(2, v * h);
@@ -1985,6 +2017,7 @@ const Transfer = {
     let host = hosts[0]; this.code = code; this.peer = hosts.join(','); // если связи не будет — адрес останется в поле для повтора
     const id = { pull: '#tfPull', push: '#tfPush', sync: '#tfSync' }[dir], label = $(id).textContent;
     this.busy = true; this.cancel = false; $(id).textContent = 'Остановить'; this.set('Подключение…');
+    let lock = null; try { lock = await navigator.wakeLock?.request('screen'); } catch {} // экран не гаснет, пока идёт перенос
     try {
       navigator.storage?.persist?.().catch(() => {});
       let info = null, err = null;
@@ -1999,14 +2032,18 @@ const Transfer = {
       const m = e.message === 'code' ? 'Неверный код — проверьте его на компьютере' : e.message === 'cancel' ? 'Перенос остановлен. Уже перенесённые треки сохранены' :
         e.name === 'QuotaExceededError' ? 'На устройстве закончилось место' : `Нет связи с ${host}. Проверьте адрес, что перенос включён на компьютере и оба устройства в одной Wi‑Fi сети.`;
       this.set(m); toast(m, 1); UI.refresh();
-    } finally { this.busy = false; const b = $(id); if (b) b.textContent = label; }
+    } finally { this.busy = false; lock?.release?.().catch(() => {}); const b = $(id); if (b) b.textContent = label; }
   },
   check() { if (this.cancel) throw new Error('cancel'); },
+  fatal: e => e.message === 'code' || e.message === 'cancel' || e.name === 'QuotaExceededError',
+  /* до 3 попыток: короткий обрыв Wi‑Fi не должен останавливать весь перенос */
+  async retry(f) { for (let k = 0; ; k++) { try { return await f(); } catch (e) { if (this.fatal(e) || k >= 2) throw e; this.check(); await new Promise(r => setTimeout(r, 1500 * (k + 1))); } } },
+  failNote(f) { return f.length ? ` Не удалось перенести ${f.length} — запустите перенос ещё раз: ${f.slice(0, 3).join(', ')}${f.length > 3 ? '…' : ''}` : ''; },
   /* В обе стороны: сначала скачиваем недостающее, потом отправляем своё */
   async sync() {
-    const before = Library.tracks.size; await this.pull(); const got = Library.tracks.size - before;
+    const before = Library.tracks.size, a = await this.pull(); const got = Library.tracks.size - before;
     const r = await this.push(), sent = +(r.match(/отправлено (\d+)/) || [0, 0])[1];
-    return `Синхронизировано · скачано треков: ${got}, отправлено: ${sent}. Плейлисты, оценки и история объединены`;
+    return `Синхронизировано · скачано треков: ${got}, отправлено: ${sent}. Плейлисты, оценки и история объединены.` + (/Не удалось/.test(a + r) ? ' Часть треков не перенеслась — запустите синхронизацию ещё раз.' : '');
   },
   /* ---------- QR-код: mytunes://sync?h=адрес:порт[,адрес:порт]&c=код ---------- */
   link(s) { return `mytunes://sync?h=${s.ips.map(ip => ip + ':' + s.port).join(',')}&c=${s.code}`; },
@@ -2055,32 +2092,37 @@ const Transfer = {
   async pull() {
     const man = await (await this.req('manifest')).json(), need = man.tracks.filter(m => !this.findLocal(m));
     const total = need.reduce((a, m) => a + (m.size || 0), 0) || 1; let done = 0, n = 0;
+    const failed = []; let streak = 0;
     for (const m of need) {
       this.check(); this.set(`Скачивание ${++n} из ${need.length} · ${fmtBytes(done)} из ${fmtBytes(total)} · ${m.title}`, done / total * 100);
-      const audio = await (await this.req('audio/' + encodeURIComponent(m.id))).blob(); let cover = null;
-      if (m.hasCover) try { cover = new Blob([await (await this.req('cover/' + encodeURIComponent(m.id))).blob()], { type: m.coverType || 'image/jpeg' }); } catch {}
-      await this.receiveTrack(m, new Blob([audio], { type: m.mime || audio.type }), cover); done += audio.size;
+      try {
+        const audio = await this.retry(async () => (await this.req('audio/' + encodeURIComponent(m.id))).blob()); let cover = null;
+        if (m.hasCover) try { cover = new Blob([await (await this.req('cover/' + encodeURIComponent(m.id))).blob()], { type: m.coverType || 'image/jpeg' }); } catch {}
+        await this.receiveTrack(m, new Blob([audio], { type: m.mime || audio.type }), cover); done += audio.size; streak = 0;
+      } catch (e) { if (this.fatal(e)) throw e; console.warn(m.title, e); failed.push(m.title); if (++streak >= 5) break; } // 5 подряд — связь потеряна
     }
     const plc = {}; for (const p of man.playlists || []) if (p.hasCover && !Library.pl(p.id)?.cover) try { plc[p.id] = new Blob([await (await this.req('plcover/' + p.id)).blob()], { type: p.coverType || 'image/jpeg' }); } catch {}
-    await this.mergeMeta(man, plc);
-    return need.length ? `Готово: скачано ${need.length} ${plural(need.length, 'трек', 'трека', 'треков')} (${fmtBytes(done)}). Плейлисты, оценки и история объединены`
-      : 'Новых треков нет — плейлисты, оценки и история объединены';
+    await this.mergeMeta(man, plc); const got = need.length - failed.length - (need.length - n);
+    return (need.length ? `Готово: скачано ${got} ${plural(got, 'трек', 'трека', 'треков')} (${fmtBytes(done)}). Плейлисты, оценки и история объединены.`
+      : 'Новых треков нет — плейлисты, оценки и история объединены.') + this.failNote([...failed, ...need.slice(n).map(m => m.title)]);
   },
   async push() {
     const man = await (await this.req('manifest')).json(), ids = new Set(man.tracks.map(t => t.id)), keys = new Set(man.tracks.map(t => t.fileName + '|' + t.size));
     const mine = this.manifest(), metaOf = new Map(mine.tracks.map(m => [m.id, m]));
     const need = Library.list().filter(t => !ids.has(t.id) && !keys.has(t.fileName + '|' + t.size));
     const total = need.reduce((a, t) => a + (t.size || 0), 0) || 1; let done = 0, n = 0;
+    const failed = []; let streak = 0, sent = 0;
     for (const t of need) {
       this.check(); this.set(`Отправка ${++n} из ${need.length} · ${fmtBytes(done)} из ${fmtBytes(total)} · ${t.title}`, done / total * 100);
       const audio = await Storage.getFile(t.id); if (!audio) continue;
       const meta = new TextEncoder().encode(JSON.stringify({ ...metaOf.get(t.id), audioSize: audio.size, coverSize: t.cover?.size || 0 }));
       const hd = new DataView(new ArrayBuffer(4)); hd.setUint32(0, meta.length, true);
-      await this.req('track', { method: 'POST', body: new Blob([hd.buffer, meta, audio, t.cover || new Blob()]) }); done += audio.size;
+      try { await this.retry(() => this.req('track', { method: 'POST', body: new Blob([hd.buffer, meta, audio, t.cover || new Blob()]) })); done += audio.size; sent++; streak = 0; }
+      catch (e) { if (this.fatal(e)) throw e; console.warn(t.title, e); failed.push(t.title); if (++streak >= 5) throw e; }
     }
     for (const p of Library.playlists) if (p.cover) await this.req('plcover/' + p.id, { method: 'POST', body: p.cover }).catch(() => {});
     await this.req('meta', { method: 'POST', body: new Blob([JSON.stringify(mine)]) });
-    return need.length ? `Готово: отправлено ${need.length} ${plural(need.length, 'трек', 'трека', 'треков')} (${fmtBytes(done)})` : 'Там уже есть все треки — плейлисты, оценки и история объединены';
+    return (need.length ? `Готово: отправлено ${sent} ${plural(sent, 'трек', 'трека', 'треков')} (${fmtBytes(done)}).` : 'Там уже есть все треки — плейлисты, оценки и история объединены.') + this.failNote(failed);
   },
 
   /* ---------- Wi‑Fi: сервер (только Windows-приложение; HTTP-запросы приходят из main.js) ---------- */
@@ -2227,6 +2269,7 @@ function applyTheme(theme, accent) {
 /* =====================================================================
    Запуск
    ===================================================================== */
+let INTRO_T0 = 0; requestAnimationFrame(() => INTRO_T0 = performance.now()); // первый кадр с заставкой
 (async function boot() {
   try { Native.init(); } catch (e) { console.error(e); }
   applyTheme(); Stats.init(); UI.init(); Player.init(); UI.render(); UI.syncVolume();
@@ -2241,7 +2284,11 @@ function applyTheme(theme, accent) {
   if (Queue.current()) await Player.load(false, LS.get('pos', 0));
   UI.syncTrack();
   App.init().catch(e => console.error(e));
-})();
+})().finally(() => { // заставка видна не меньше 2 с, затем плавно исчезает
+  const el = $('#intro'); if (!el) return;
+  const hide = () => { el.classList.add('out'); setTimeout(() => el.remove(), 600); };
+  const wait = () => INTRO_T0 ? setTimeout(hide, Math.max(0, 2000 - (performance.now() - INTRO_T0))) : requestAnimationFrame(wait); wait();
+});
 </script>
 </body>
 </html>
