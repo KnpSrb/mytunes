@@ -734,14 +734,40 @@ const Queue = {
   },
   current() { return this.list[this.i]; },
   doShuffle() {
-    const cur = this.current(), rest = this.list.filter((_, k) => k !== this.i);
-    for (let k = rest.length - 1; k > 0; k--) { const j = Math.random() * (k + 1) | 0; [rest[k], rest[j]] = [rest[j], rest[k]]; }
+    const cur = this.current(); let rest = this.list.filter((_, k) => k !== this.i);
+    if (this.smart && rest.length > 2) rest = this.smartOrder(rest, cur);
+    else for (let k = rest.length - 1; k > 0; k--) { const j = Math.random() * (k + 1) | 0; [rest[k], rest[j]] = [rest[j], rest[k]]; }
     this.list = cur ? [cur, ...rest] : rest; this.i = cur ? 0 : -1;
+  },
+  /* Умное перемешивание.
+     1) Взвешенный случайный порядок (ключ u^(1/w)): треки с высокой оценкой, лайком и любимых исполнителей
+        чаще оказываются ближе к началу, с оценкой 1★ и частыми пропусками — ближе к концу,
+        а звучавшие в последние 2 часа отодвигаются назад. Порядок при этом остаётся случайным.
+     2) Разнос: следующий трек выбирается среди ближайших 12 так, чтобы не повторять
+        исполнителя из последних 3 и альбом из последних 5 треков. */
+  smart: LS.get('smartShuffle', true),
+  smartOrder(ids, curId) {
+    const M = Rec.model(), now = Date.now(), key = t => t.album + '\u0001' + t.artist;
+    const items = ids.map(id => { const t = Library.get(id); if (!t) return { id, a: '', al: '', k: Math.random() };
+      const p = Rec.parts(t, M, []); let w = Math.exp(0.6 * (p.rating + p.liked + p.artist * 0.5 + p.skip + p.ban * 0.5));
+      const last = M.last.get(id); if (last && now - last < 2 * 3600e3) w *= 0.25;
+      return { id, a: t.artist, al: key(t), k: Math.random() ** (1 / Math.max(0.02, w)) }; });
+    items.sort((x, y) => y.k - x.k);
+    const gap = Math.min(3, new Set(items.map(x => x.a)).size - 1), ct = Library.get(curId);
+    const ra = ct && gap > 0 ? [ct.artist] : [], ral = ct ? [key(ct)] : [], out = [];
+    while (items.length) {
+      let j = items.findIndex((x, k) => k < 12 && !ra.includes(x.a) && !ral.includes(x.al));
+      if (j < 0) j = items.findIndex((x, k) => k < 12 && x.a !== ra[ra.length - 1]);
+      if (j < 0) j = 0;
+      const [x] = items.splice(j, 1); out.push(x.id);
+      ra.push(x.a); if (ra.length > gap) ra.shift(); ral.push(x.al); if (ral.length > gap + 2) ral.shift();
+    }
+    return out;
   },
   toggleShuffle() {
     this.shuffle = !this.shuffle; LS.set('shuffle', this.shuffle);
     if (this.shuffle) this.doShuffle(); else { const c = this.current(); this.list = [...this.orig]; this.i = Math.max(0, this.list.indexOf(c)); }
-    this.save(); UI.syncControls(); UI.renderQueue(); toast(this.shuffle ? 'Перемешивание включено' : 'Перемешивание выключено');
+    this.save(); UI.syncControls(); UI.renderQueue(); toast(this.shuffle ? (this.smart ? 'Умное перемешивание включено' : 'Перемешивание включено') : 'Перемешивание выключено');
   },
   cycleRepeat() {
     this.repeat = { off: 'all', all: 'one', one: 'off' }[this.repeat]; LS.set('repeat', this.repeat); UI.syncControls();
@@ -1225,7 +1251,9 @@ const UI = {
       </div>`;
     const playFrom = (k, shuffle) => { if (!ts.length) return; if (shuffle && !Queue.shuffle) Queue.toggleShuffle(); Queue.set(ts.map(t => t.id), k); Player.load(true); };
     $('#pgPlay').onclick = () => { if (Player.track && ts.some(t => t.id === Player.track.id) && Queue.list.join() === ts.map(t => t.id).join()) Player.toggle(); else playFrom(0); };
-    $('#pgShuf').onclick = () => playFrom(Math.random() * ts.length | 0, true);
+    $('#pgShuf').onclick = () => { if (!ts.length) return; if (!Queue.shuffle) Queue.toggleShuffle();
+      const ids = ts.map(t => t.id), first = Queue.smart && ids.length > 2 ? Queue.smartOrder(ids)[0] : ids[Math.random() * ids.length | 0];
+      Queue.set(ids, ids.indexOf(first)); Player.load(true); };
     $('#sortSel') && ($('#sortSel').onchange = e => { this.sort = e.target.value; LS.set('sort', this.sort); this.render(); });
     $$('[data-view]', m).forEach(b => b.onclick = () => { this.view = b.dataset.view; LS.set('view', this.view); this.render(); });
     if (o.smart) {
@@ -1370,6 +1398,8 @@ const UI = {
       <div class="line"><div><b>Кроссфейд</b><div class="muted sm">0 — gapless-переход</div></div><div style="display:flex;gap:8px;align-items:center;width:220px"><input type="range" class="xf" min="0" max="12" step="1" value="${Player.xfade}" aria-label="Кроссфейд, секунд"><span class="xfv">${Player.xfade} с</span></div></div>
       <div class="line"><div><b>Склейка без пауз</b><div class="muted sm">Следующий трек загружается заранее и начинается встык. Внутри одного альбома кроссфейд не применяется — концертные альбомы и миксы звучат непрерывно.</div></div>
         <button class="pill ${Player.gapless ? 'on' : ''}" id="gapT" role="switch" aria-checked="${Player.gapless}">${Player.gapless ? 'Вкл' : 'Выкл'}</button></div>
+      <div class="line"><div><b>Умное перемешивание</b><div class="muted sm">Порядок случайный, но один исполнитель и альбом не идут подряд. Треки с высокой оценкой и лайком звучат раньше, а недавно прослушанные и с оценкой 1★ — позже.</div></div>
+        <button class="pill ${Queue.smart ? 'on' : ''}" id="smShT" role="switch" aria-checked="${Queue.smart}">${Queue.smart ? 'Вкл' : 'Выкл'}</button></div>
       ${App.api ? `<div class="line"><div><b>MyTunes ${esc(App.version)}</b><div class="muted sm" id="updS">${esc(App.status)}</div></div><button class="pill" id="updC">Проверить обновления</button></div>` : ''}
       <div class="line" style="display:block"><b>Хранилище</b><p class="muted sm">Треки: ${Library.tracks.size} · ${fmtBytes(lib)}${est ? ` · занято ${fmtBytes(est.usage)} из ${fmtBytes(est.quota)}` : ''}</p>
         ${est ? `<div class="bar"><i style="width:${Math.min(100, est.usage / est.quota * 100).toFixed(2)}%"></i></div>` : ''}</div>
@@ -1379,6 +1409,7 @@ const UI = {
     </div></div>`;
     $$('[data-theme-set]').forEach(b => b.onclick = () => { applyTheme(b.dataset.themeSet, null); this.render(); });
     $$('[data-acc]').forEach(b => b.onclick = () => { applyTheme(null, b.dataset.acc); this.render(); });
+    $('#smShT').onclick = () => { Queue.smart = !Queue.smart; LS.set('smartShuffle', Queue.smart); if (Queue.shuffle) { Queue.doShuffle(); Queue.save(); UI.renderQueue(); } this.render(); };
     $('#gapT').onclick = () => { Player.gapless = !Player.gapless; LS.set('gapless', Player.gapless); this.render(); };
     $('#updC') && ($('#updC').onclick = () => App.api.check());
     $('#exp').onclick = () => Library.exportJSON(); $('#imp').onclick = () => $('#jsonIn').click();
