@@ -2431,7 +2431,7 @@ const Native = {
     if (DEMO) { if (manual) toast('Демо-версия не обновляется'); return; } // иначе предложила бы обычный APK
     try {
       const j = await (await fetch('https://api.github.com/repos/KnpSrb/mytunes/releases/latest')).json();
-      const v = String(j.tag_name || '').replace(/^v/, ''), apk = (j.assets || []).find(a => /\.apk$/i.test(a.name));
+      const v = String(j.tag_name || '').replace(/^v/, ''), apk = (j.assets || []).find(a => /\.apk$/i.test(a.name) && !/demo/i.test(a.name)); // в релизе есть и «MyTunes Demo»
       if (apk && this.newer(v, this.version)) App.banner({ state: 'portable', version: v, url: apk.browser_download_url });
       else if (manual) toast('Установлена последняя версия');
     } catch { if (manual) toast('Не удалось проверить обновления', 1); }
