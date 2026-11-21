@@ -51,6 +51,8 @@ nav.top{padding:12px}
 .play-big:hover{transform:scale(1.06)}.play-big svg{width:24px;height:24px}
 /* Карточки */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+/* блок «Плейлисты» на вкладке «Медиатека» — только на телефоне (на компьютере они в боковой панели) */
+.mobpl{display:none}.newpl .cv{display:grid;place-items:center;background:var(--p2)}.newpl .cv svg{width:44%;height:44%;fill:var(--tx2)}
 .card{background:var(--p1);padding:12px;border-radius:var(--r);transition:.25s;cursor:pointer;position:relative;text-align:left;width:100%}
 #main .card{background:#ffffff08}.card:hover{background:var(--p2)!important;transform:translateY(-4px)}
 .card .cv{width:100%;aspect-ratio:1;border-radius:6px;box-shadow:0 8px 24px #0006;position:relative}
@@ -182,7 +184,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 /* ============ Мобильная версия ============ */
 @media (max-width:768px){
   #app{grid-template-columns:1fr;grid-template-rows:1fr 64px 60px;padding:0;gap:0}
-  #side{display:none}#main{border-radius:0}
+  #side{display:none}#main{border-radius:0}.mobpl{display:block}
   #bar{grid-template-columns:1fr auto;margin:0 8px;background:var(--p2);border-radius:8px;padding:4px 8px;position:relative}
   #bar .ctrl .prog,#bar .right,#bar .btns .ib{display:none}
   #bar .ctrl{width:auto}#bar .np .cv{width:44px;height:44px}
@@ -1287,7 +1289,7 @@ const UI = {
     const V = {
       home: () => this.home(all),
       search: () => this.searchView(),
-      library: () => this.trackPage({ title: 'Все треки', kind: 'Медиатека', tracks: all, sortable: true, cover: `background-image:linear-gradient(135deg,var(--ac),#0b3d20)` }),
+      library: () => this.trackPage({ title: 'Все треки', kind: 'Медиатека', tracks: all, sortable: true, top: this.mobPlaylists(), cover: `background-image:linear-gradient(135deg,var(--ac),#0b3d20)` }),
       liked: () => this.trackPage({ title: 'Любимые треки', kind: 'Плейлист', tracks: Library.liked.map(id => Library.get(id)).filter(Boolean), reorder: ids => { Library.liked = [...ids, ...Library.liked.filter(x => !ids.includes(x))]; LS.set('liked', Library.liked); }, cover: 'background-image:linear-gradient(135deg,#450af5,#8e8ee5)', color: '#5038a0' }),
       recent: () => this.trackPage({ title: 'Недавно прослушанные', kind: 'Авто-плейлист', tracks: Library.recent.map(id => Library.get(id)).filter(Boolean), cover: 'background-image:linear-gradient(135deg,#1e3264,#e8115b)', color: '#6a1b3f' }),
       added: () => this.trackPage({ title: 'Недавно добавленные', kind: 'Авто-плейлист', tracks: [...all].sort((x, y) => y.added - x.added).slice(0, 50), cover: `background-image:${gradientFor('added')}` }),
@@ -1295,8 +1297,8 @@ const UI = {
         return this.trackPage({ title: p.name, kind: 'Плейлист', tracks: p.tracks.map(id => Library.get(id)).filter(Boolean), cover: this.plCover(p), pl: p, reorder: ids => { p.tracks = [...ids, ...p.tracks.filter(x => !ids.includes(x))]; return Library.savePl(p); }, coverTrack: Library.get(p.tracks[0]) }); },
       artists: () => this.cardsPage('Исполнители', [...Library.artists()].map(([n, ts]) => ({ title: n, sub: `${ts.length} тр.`, t: ts.find(x => x.cover) || ts[0], go: 'artist', arg: n, round: true, ids: ts.map(x => x.id) }))),
       albums: () => this.cardsPage('Альбомы', [...Library.albums()].map(([k, ts]) => ({ title: ts[0].album, sub: ts[0].artist, t: ts.find(x => x.cover) || ts[0], go: 'album', arg: k, ids: ts.map(x => x.id) }))),
-      artist: () => { const ts = Library.artists().get(a) || []; return this.trackPage({ title: a, kind: 'Исполнитель', tracks: ts, coverTrack: ts.find(x => x.cover), round: true, sortable: true }); },
-      album: () => { const ts = Library.albums().get(a) || []; const t0 = ts[0] || {}; return this.trackPage({ title: t0.album, kind: 'Альбом', sub: `${esc(t0.artist)}${t0.year ? ' · ' + esc(t0.year) : ''}`, tracks: ts, coverTrack: ts.find(x => x.cover) }); },
+      artist: () => { const ts = Library.artists().get(a) || []; return this.trackPage({ title: a, kind: 'Исполнитель', tracks: ts, coverTrack: ts.find(x => x.cover), round: true, sortable: true, saveAs: a }); },
+      album: () => { const ts = Library.albums().get(a) || []; const t0 = ts[0] || {}; return this.trackPage({ title: t0.album, kind: 'Альбом', saveAs: t0.album, sub: `${esc(t0.artist)}${t0.year ? ' · ' + esc(t0.year) : ''}`, tracks: ts, coverTrack: ts.find(x => x.cover) }); },
       settings: () => this.settings(),
       smart: () => { const x = SMART.find(y => y.k === a); if (!x) return this.go('home');
         return this.trackPage({ title: x.name, kind: 'Умный плейлист', sub: esc(x.desc), tracks: x.get(), cover: `background-image:${x.bg}`, color: x.col, smart: x }); },
@@ -1312,6 +1314,14 @@ const UI = {
   emptyUpload(title = 'Загрузите первый трек', text = NATIVE ? 'Выберите треки на телефоне (mp3, wav, ogg, flac, m4a, aac или ZIP) или перенесите всю медиатеку с компьютера по Wi‑Fi.' : 'Перетащите сюда файлы, целую папку или ZIP-архив — mp3, wav, ogg, flac, m4a, aac. Всё хранится локально на этом устройстве.') {
     return `<div class="drop" id="dropZone" style="margin:24px"><div class="empty" style="padding:24px">${I('upload')}<h3>${title}</h3><p>${text}</p>
       <div class="chips" style="justify-content:center"><button class="btn" onclick="$('#fileIn').click()">Выбрать файлы</button>${NATIVE ? '<button class="btn ghost" data-go="settings">Перенести с компьютера</button>' : ''}</div></div></div>`;
+  },
+  mobPlaylists() {
+    const liked = Library.liked.filter(id => Library.get(id));
+    return `<div class="sec mobpl"><h2>Плейлисты</h2><div class="grid">
+      <div class="card newpl" role="button" tabindex="0" id="mNewPl" aria-label="Создать плейлист"><div class="cv">${I('plus')}</div><b>Создать плейлист</b><span class="muted">Пустой, треки добавите потом</span></div>
+      ${this.card({ title: 'Любимые треки', sub: `${liked.length} тр.`, css: 'background-image:linear-gradient(135deg,#450af5,#8e8ee5)', icon: 'heartF', go: 'liked', ids: liked })}
+      ${Library.playlists.map(p => this.card({ title: p.name, sub: `${p.tracks.length} тр.`, css: this.plCover(p), go: 'playlist', arg: p.id, ids: p.tracks })).join('')}
+    </div><h2 style="margin-top:24px">Все треки</h2></div>`;
   },
   card(o) {
     return `<div class="card" role="button" tabindex="0" data-go="${o.go}" data-arg="${esc(o.arg)}" aria-label="${esc(o.title)}">
@@ -1378,12 +1388,14 @@ const UI = {
         ${o.pl ? `<button class="ib" id="pgMore" aria-label="Действия с плейлистом">${I('more')}</button>` : ''}
         ${o.smart?.k === 'mix' ? '<button class="pill" id="mixNew">Обновить подборку</button>' : ''}
         ${o.smart && ts.length ? '<button class="pill" id="smSave">Сохранить как плейлист</button>' : ''}
+        ${o.saveAs && ts.length ? '<button class="pill" id="asPl">Сохранить как плейлист</button>' : ''}
         <span style="flex:1"></span>
         ${o.sortable ? `<label class="sm muted">Сортировка <select class="inp" id="sortSel" style="width:auto;padding:6px 8px" aria-label="Сортировка">
           ${[['added', 'Дата добавления'], ['title', 'Название'], ['artist', 'Исполнитель'], ['rating', 'Оценка'], ['duration', 'Длительность']].map(([v, n]) => `<option value="${v}" ${this.sort === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
         <button class="ib ${this.view === 'list' ? 'on' : ''}" data-view="list" aria-label="Вид списком">${I('list')}</button>
         <button class="ib ${this.view === 'grid' ? 'on' : ''}" data-view="grid" aria-label="Вид сеткой">${I('gridI')}</button>
       </div>
+      ${o.top || ''}
       <div class="sec">${ts.length ? (this.view === 'grid'
         ? `<div class="grid">${ts.map(t => `<div class="card" role="button" tabindex="0" data-row="${t.id}" aria-label="${esc(t.title)}"><div class="cv" style="${coverCSS(t)}"></div><button class="play-big fab" data-rowplay aria-label="Воспроизвести ${esc(t.title)}">${I('play')}</button><b>${esc(t.title)}</b><span class="muted">${esc(t.artist)}</span></div>`).join('')}</div>`
         : this.rows(ts, o)) : o.smart ? `<div class="empty">${I(o.smart.icon)}<h3>Пока пусто</h3><p>${{ mix: 'Добавьте несколько треков — подборка появится сразу.', top: 'Послушайте музыку — здесь соберётся ваш топ за 30 дней.', rated: 'Ставьте оценки трекам: клик по звёздам в списке, в «Сейчас играет» или клавиши 1–5.', forgotten: 'Здесь появятся треки, которые вы не включали больше месяца.', never: 'Вы уже послушали все треки медиатеки!' }[o.smart.k]}</p></div>`
@@ -1400,6 +1412,15 @@ const UI = {
       $('#mixNew') && ($('#mixNew').onclick = () => { Rec.mix(true); this.render(); toast('Подборка обновлена'); });
       $('#smSave') && ($('#smSave').onclick = async () => { const p = await Library.createPlaylist(`${o.title} · ${new Date().toLocaleDateString('ru-RU')}`, ts.map(t => t.id)); toast(`Создан «${p.name}»`); });
     }
+    // плейлист из всех треков исполнителя/альбома; если такой уже есть — дополняется недостающими
+    $('#asPl') && ($('#asPl').onclick = async () => {
+      const ids = ts.map(t => t.id), ex = Library.playlists.find(p => p.name === o.saveAs);
+      if (ex) { const add = ids.filter(i => !ex.tracks.includes(i)); ex.tracks.push(...add); await Library.savePl(ex);
+        toast(add.length ? `В «${ex.name}» добавлено ${add.length} ${plural(add.length, 'трек', 'трека', 'треков')}` : `Все треки уже есть в «${ex.name}»`); return this.go('playlist', ex.id); }
+      const p = await Library.createPlaylist(o.saveAs, ids); toast(`Создан плейлист «${p.name}» · ${ids.length} тр.`); this.go('playlist', p.id);
+    });
+    if (o.top) this.bindCards(m); // карточки плейлистов над списком (телефон)
+    $('#mNewPl') && ($('#mNewPl').onclick = async () => { const p = await Library.createPlaylist(); this.go('playlist', p.id); toast('Плейлист создан — нажмите на название, чтобы переименовать'); });
     if (o.pl) {
       $('#plName').onclick = () => this.renamePl(o.pl);
       $('#plCover').onclick = () => this.pickImage(async blob => { o.pl.cover = blob; o.pl._u = null; await Library.savePl(o.pl); });
